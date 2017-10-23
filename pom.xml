@@ -83,7 +83,7 @@
                 <version>3.0.2</version>
                 <executions>
                     <execution>
-                        <id>copy-resources</id>
+                        <id>copy-dlls</id>
                         <phase>package</phase>
                         <goals>
                             <goal>copy-resources</goal>
@@ -93,6 +93,21 @@
                             <resources>          
                                 <resource>
                                     <directory>dependencies/scapi/assets/x64Dlls</directory>
+                                </resource>
+                            </resources>              
+                        </configuration>            
+                    </execution>
+                    <execution>
+                        <id>copy-resources</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/resources</outputDirectory>
+                            <resources>          
+                                <resource>
+                                    <directory>resources</directory>
                                 </resource>
                             </resources>              
                         </configuration>            
