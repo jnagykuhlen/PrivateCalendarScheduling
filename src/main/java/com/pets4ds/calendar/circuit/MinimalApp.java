@@ -6,10 +6,9 @@
 package com.pets4ds.calendar.circuit;
 
 import edu.biu.SCProtocols.gmw.*;
+import com.pets4ds.calendar.circuit.*;
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  *
@@ -17,34 +16,53 @@ import java.util.logging.Logger;
  */
 public class MinimalApp {
     public static void main(String[] args) {
-        /*
-        try {
-            Files.createDirectories(Paths.get("circuitcache"));
+        boolean isCoordinator = args.length == 0;
+        
+        final int numberOfParties = 3;
+        final int numberOfSlots = 5;
+        
+        if(isCoordinator) {
+            System.out.println("This party is the coordinator.");
+            System.out.println("Parameters for circuit generation:");
+            System.out.println("  n = " + numberOfParties);
+            System.out.println("  m = " + numberOfSlots);
             
-            try(PrintWriter writer = new PrintWriter("scapicache/filename.txt")) {
-                out.println( text );
+            ScapiCircuitBuilder builder = new ScapiCircuitBuilder(numberOfParties);
+            (new FirstMatchSchedulingCircuitGenerator(numberOfParties, numberOfSlots)).generate(builder);
+            builder.toBooleanCircuit().write("GeneratedCircuit.txt");
+            
+            System.out.println("Circuit generation successful.");
+            System.out.println("Starting other parties...");
+            
+            try {
+                for(int i = 1; i < numberOfParties; ++i) {
+                    Runtime.getRuntime().exec("java -jar \"PrivateCalendarScheduling-1.0-SNAPSHOT.jar\" " + i);
+                }
+                
+                System.out.println("Other parties successfully started.");
+            } catch(IOException ex) {
+                System.out.println("Failed to start parties.");
             }
-        } catch(IOException exception) {
-            System.out.println("An exception occurred: " + exception.getMessage());
+            
+            System.out.println();
         }
-        */
         
         int partyId = 0;
         if(args.length > 0)
             partyId = Integer.parseInt(args[0]);
         
+        long startTime = System.nanoTime();
+        
         runSingleParty(partyId);
         
-        System.out.println();
-        System.out.println("Press Enter to exit.");
+        long endTime = System.nanoTime();
+        long totalTime =(endTime - startTime) / 1000000;
         
-        try {
-            System.in.read();
-        } catch (IOException ex) { }
+        System.out.println("Protocol execution took " + totalTime + " ms.");
     }
     
     private static void runSingleParty(int partyId) {
-        GmwProtocolInput input = new GmwProtocolInput(partyId, "resources/Circuit.txt", "resources/Parties.txt", "resources/Input" + partyId + ".txt", 2);
+        GmwProtocolInput input = new GmwProtocolInput(partyId, "GeneratedCircuit.txt", "resources/Parties.txt", "resources/Input" + (partyId % 3) + ".txt", 99);
         GmwParty party = new GmwParty();
         
         System.out.println("--- Log for party " + partyId + " ---");
