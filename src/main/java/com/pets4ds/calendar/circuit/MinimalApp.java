@@ -6,9 +6,11 @@
 package com.pets4ds.calendar.circuit;
 
 import edu.biu.SCProtocols.gmw.*;
-import com.pets4ds.calendar.circuit.*;
-import java.io.IOException;
-import java.util.Arrays;
+import edu.biu.scapi.circuits.circuit.BooleanCircuit;
+import edu.biu.scapi.circuits.circuit.Wire;
+import java.io.Console;
+import java.io.*;
+import java.util.*;
 
 /**
  *
@@ -21,6 +23,13 @@ public class MinimalApp {
         final int numberOfParties = 3;
         final int numberOfSlots = 5;
         
+        byte[][] partyInputs = new byte[][]{
+            { 0, 1, 1, 1, 1 },
+            { 1, 1, 0, 1, 1 },
+            { 1, 1, 0, 1, 0 },
+            { 1, 1, 1, 1, 0 }
+        };
+        
         if(isCoordinator) {
             System.out.println("This party is the coordinator.");
             System.out.println("Parameters for circuit generation:");
@@ -32,6 +41,44 @@ public class MinimalApp {
             builder.toBooleanCircuit().write("GeneratedCircuit.txt");
             
             System.out.println("Circuit generation successful.");
+            
+            writeInputFiles(partyInputs, numberOfParties, numberOfSlots);
+            writeCommunicationFile(numberOfParties);
+            
+            System.out.println("Computing reference output...");
+            
+            try {
+                BooleanCircuit circuit = new BooleanCircuit(new File("GeneratedCircuit.txt"));
+                
+                for(int partyId = 0; partyId < numberOfParties; ++partyId) {
+                    Map<Integer, Wire> inputWires = new HashMap<>(numberOfSlots);
+                    
+                    int slotId = 0;
+                    for(Integer wireId : circuit.getInputWireIndices(partyId + 1)) {
+                        int boundedPartyId = partyId % partyInputs.length;
+                        int boundedSlotId = slotId % partyInputs[boundedPartyId].length;
+                        
+                        inputWires.put(wireId, new Wire(partyInputs[boundedPartyId][boundedSlotId]));
+                        slotId++;
+                    }
+                    
+                    circuit.setInputs(inputWires, partyId + 1);
+                }
+                
+                System.out.println("Inputs set.");
+                
+                Map<Integer, Wire> outputs = circuit.compute();
+                
+                System.out.print("Reference output: ");
+                for(Integer wireId : circuit.getOutputWireIndices(1)) {
+                    System.out.print(outputs.get(wireId).getValue());
+                }
+                System.out.println();
+            } catch(Exception ex) {
+                System.out.println("Cannot load inputs.");
+                ex.printStackTrace();
+            }
+            
             System.out.println("Starting other parties...");
             
             try {
@@ -42,6 +89,7 @@ public class MinimalApp {
                 System.out.println("Other parties successfully started.");
             } catch(IOException ex) {
                 System.out.println("Failed to start parties.");
+                ex.printStackTrace();
             }
             
             System.out.println();
@@ -59,10 +107,57 @@ public class MinimalApp {
         long totalTime =(endTime - startTime) / 1000000;
         
         System.out.println("Protocol execution took " + totalTime + " ms.");
+        
+        Console console = System.console();
+        if(console != null) {
+            System.out.println();
+            System.out.println("Press Enter to exit.");
+            console.readLine();
+        }
+    }
+    
+    private static void writeInputFiles(byte[][] partyInputs, int numberOfParties, int numberOfSlots) {
+        System.out.println("Generating input files...");
+        
+        for(int partyId = 0; partyId < numberOfParties; ++partyId) {
+            try(FileWriter writer = new FileWriter("Input" + partyId + ".txt")) {
+                for (int slotId = 0; slotId < numberOfSlots; ++slotId) {
+                    int boundedPartyId = partyId % partyInputs.length;
+                    int boundedSlotId = slotId % partyInputs[boundedPartyId].length;
+                    writer.write(Byte.toString(partyInputs[boundedPartyId][boundedSlotId]) + "\n");
+                }
+                
+                System.out.println("Input file generation successful.");
+            } catch(IOException ex) {
+                System.out.println("Cannot write input files.");
+                ex.printStackTrace();
+            }
+        }
+    }
+    
+    private static void writeCommunicationFile(int numberOfParties) {
+        System.out.println("Generating communication file...");
+        
+        try(FileWriter writer = new FileWriter("Parties.txt")) {
+            for(int partyId = 0; partyId < numberOfParties; ++partyId) {
+                writer.write("party_" + partyId + "_ip = 127.0.0.1\n");
+            }
+            
+            final int startPort = 8000;
+            final int portsPerParty = 100;
+            
+            for(int partyId = 0; partyId < numberOfParties; ++partyId) {
+                int port = startPort + partyId * portsPerParty;
+                writer.write("party_" + partyId + "_port = " + port + "\n");
+            }
+        } catch(IOException ex) {
+                System.out.println("Cannot write communication file.");
+                ex.printStackTrace();
+            }
     }
     
     private static void runSingleParty(int partyId) {
-        GmwProtocolInput input = new GmwProtocolInput(partyId, "GeneratedCircuit.txt", "resources/Parties.txt", "resources/Input" + (partyId % 3) + ".txt", 99);
+        GmwProtocolInput input = new GmwProtocolInput(partyId, "GeneratedCircuit.txt", "Parties.txt", "Input" + partyId + ".txt", 1);
         GmwParty party = new GmwParty();
         
         System.out.println("--- Log for party " + partyId + " ---");
@@ -90,7 +185,7 @@ public class MinimalApp {
             threads[i] = new Thread() {
                 @Override
                 public void run() {
-                    GmwProtocolInput input = new GmwProtocolInput(partyId, "resources/Circuit.txt", "resources/Parties.txt", "resources/Input" + partyId + ".txt", 2);
+                    GmwProtocolInput input = new GmwProtocolInput(partyId, "Circuit.txt", "Parties.txt", "Input" + partyId + ".txt", 1);
                     parties[partyId].start(input);
                     parties[partyId].run();
                 }
@@ -110,6 +205,7 @@ public class MinimalApp {
                 System.out.println("Output of party " + i + ": " + Arrays.toString(binaryOutput));
             } catch (InterruptedException ex) {
                 System.out.println("Thread was interrupted.");
+                ex.printStackTrace();
             }
         }
         
