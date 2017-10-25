@@ -17,6 +17,8 @@ import java.util.*;
  * @author Jonas Nagy-Kuhlen <jonas.nagy-kuhlen@rwth-aachen.de>
  */
 public class MinimalApp {
+    private static final String JAR_NAME = "PrivateCalendarScheduling-1.0-SNAPSHOT.jar";
+    
     public static void main(String[] args) {
         boolean isCoordinator = args.length == 0;
         
@@ -44,6 +46,7 @@ public class MinimalApp {
             
             writeInputFiles(partyInputs, numberOfParties, numberOfSlots);
             writeCommunicationFile(numberOfParties);
+            writeRunScript(numberOfParties);
             
             System.out.println("Computing reference output...");
             
@@ -83,7 +86,7 @@ public class MinimalApp {
             
             try {
                 for(int i = 1; i < numberOfParties; ++i) {
-                    Runtime.getRuntime().exec("java -jar \"PrivateCalendarScheduling-1.0-SNAPSHOT.jar\" " + i);
+                    Runtime.getRuntime().exec("java -jar \"" + JAR_NAME + "\" " + i);
                 }
                 
                 System.out.println("Other parties successfully started.");
@@ -150,10 +153,31 @@ public class MinimalApp {
                 int port = startPort + partyId * portsPerParty;
                 writer.write("party_" + partyId + "_port = " + port + "\n");
             }
+            
+            System.out.println("Communication file generation successful.");
         } catch(IOException ex) {
-                System.out.println("Cannot write communication file.");
-                ex.printStackTrace();
+            System.out.println("Cannot write communication file.");
+            ex.printStackTrace();
+        }
+    }
+    
+    private static void writeRunScript(int numberOfParties) {
+        // "java -jar \"" + JAR_NAME + "\" " + i
+        
+        System.out.println("Generating run script...");
+        
+        try(FileWriter writer = new FileWriter("RunProtocol.bat")) {
+            for(int partyId = 0; partyId < numberOfParties; ++partyId) {
+                writer.write("start \"Party " + partyId + "\" java -jar \"\"" + JAR_NAME + "\"\" " + partyId);
+                if(partyId < numberOfParties - 1)
+                    writer.write(" &\n");
             }
+            
+            System.out.println("Run script generation successful.");
+        } catch(IOException ex) {
+            System.out.println("Cannot write run script.");
+            ex.printStackTrace();
+        }
     }
     
     private static void runSingleParty(int partyId) {
