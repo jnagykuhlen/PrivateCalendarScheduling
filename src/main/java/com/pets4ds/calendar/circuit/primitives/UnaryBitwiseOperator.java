@@ -11,13 +11,15 @@ import com.pets4ds.calendar.circuit.*;
  *
  * @author Jonas Nagy-Kuhlen <jonas.nagy-kuhlen@rwth-aachen.de>
  */
-public abstract class UnaryBitwiseOperator extends BitwiseOperator {
+public abstract class UnaryBitwiseOperator {
+    private CircuitBuilder _builder;
+    
     public UnaryBitwiseOperator(CircuitBuilder builder) {
-        super(builder);
+        _builder = builder;
     }
     
     public Wire[] apply(Wire[] operand) {
-        return apply(getBuilder(), operand);
+        return apply(_builder, operand);
     }
     
     protected abstract Wire[] apply(CircuitBuilder builder, Wire[] operand);

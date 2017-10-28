@@ -39,7 +39,7 @@ public class MinimalApp {
             System.out.println("  m = " + numberOfSlots);
             
             ScapiCircuitBuilder builder = new ScapiCircuitBuilder(numberOfParties);
-            (new FirstMatchSchedulingCircuitGenerator(numberOfParties, numberOfSlots)).generate(builder);
+            (new BestMatchSchedulingCircuitGenerator(numberOfParties, numberOfSlots)).generate(builder);
             builder.toBooleanCircuit().write("GeneratedCircuit.txt");
             
             System.out.println("Circuit generation successful.");

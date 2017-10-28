@@ -11,9 +11,11 @@ import com.pets4ds.calendar.circuit.*;
  *
  * @author Jonas Nagy-Kuhlen <jonas.nagy-kuhlen@rwth-aachen.de>
  */
-public abstract class BinaryBitwiseOperator extends BitwiseOperator {
+public abstract class BinaryBitwiseOperator {
+    private CircuitBuilder _builder;
+    
     public BinaryBitwiseOperator(CircuitBuilder builder) {
-        super(builder);
+        _builder = builder;
     }
     
     public Wire[] apply(Wire[] leftOperand, Wire[] rightOperand) {
@@ -21,12 +23,12 @@ public abstract class BinaryBitwiseOperator extends BitwiseOperator {
         if(rightOperand.length != numberOfBits)
             throw new IllegalArgumentException("Bit sizes of inputs do not match.");
         
-        return apply(getBuilder(), leftOperand, rightOperand, numberOfBits);
+        return apply(_builder, leftOperand, rightOperand, numberOfBits);
     }
     
     protected abstract Wire[] apply(CircuitBuilder builder, Wire[] leftOperand, Wire[] rightOperand, int numberOfBits);
     
-    public static Wire[] buildAggregateCircuit(BinaryBitwiseOperator operator, Wire[]... operands) {
+    public Wire[] applyAggregated(Wire[]... operands) {
         if(operands.length <= 0)
             throw new IllegalArgumentException("Aggregation requires at least one operand.");
         
@@ -39,12 +41,12 @@ public abstract class BinaryBitwiseOperator extends BitwiseOperator {
         for(int i = 0; i < reducedOperands.length; ++i) {
             int operandIndex = 2 * i;
             if(operandIndex + 1 < operands.length) {
-                reducedOperands[i] = operator.apply(operands[operandIndex], operands[operandIndex + 1]);
+                reducedOperands[i] = apply(operands[operandIndex], operands[operandIndex + 1]);
             } else {
                 reducedOperands[i] = operands[operandIndex];
             }
         }
         
-        return buildAggregateCircuit(operator, reducedOperands);
+        return applyAggregated(reducedOperands);
     }
 }
