@@ -40,6 +40,7 @@ public abstract class SchedulingCircuitGenerator implements CircuitGenerator {
     
     protected abstract Wire[] generateScheduling(CircuitBuilder builder, Wire[][] partyInputWires);
     
+    @Override
     public int getNumberOfParties() {
         return _numberOfParties;
     }
