@@ -9,17 +9,27 @@ import javafx.stage.Stage;
 
 
 public class MainApp extends Application {
-
+    private MainController _controller;
+    
     @Override
     public void start(Stage stage) throws Exception {
-        Parent root = FXMLLoader.load(getClass().getResource("/fxml/Scene.fxml"));
+        FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/MainScene.fxml"));
+        Parent root = loader.load();
+        _controller = loader.getController();
         
         Scene scene = new Scene(root);
         scene.getStylesheets().add("/styles/Styles.css");
         
-        stage.setTitle("JavaFX and Maven");
+        stage.setTitle("Private Calendar Scheduling");
+        stage.setMinWidth(480);
+        stage.setMinHeight(320);
         stage.setScene(scene);
         stage.show();
+    }
+    
+    @Override
+    public void stop() {
+        _controller.close();
     }
 
     /**
