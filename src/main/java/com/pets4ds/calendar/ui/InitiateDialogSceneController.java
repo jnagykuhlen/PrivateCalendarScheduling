@@ -7,10 +7,13 @@ package com.pets4ds.calendar.ui;
 
 import java.net.URL;
 import java.util.ResourceBundle;
+import javafx.beans.binding.Bindings;
+import javafx.beans.binding.BooleanBinding;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.Node;
+import javafx.scene.control.Button;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
@@ -26,6 +29,9 @@ public class InitiateDialogSceneController implements Initializable {
     private String _description;
     
     @FXML
+    private Button _acceptButton;
+    
+    @FXML
     private TextField _nameTextField;
     
     @FXML
@@ -36,6 +42,12 @@ public class InitiateDialogSceneController implements Initializable {
         _isAccepted = false;
         _name = null;
         _description = null;
+        
+        BooleanBinding invalidBinding = Bindings.createBooleanBinding(
+            () -> { return _nameTextField.getText().trim().isEmpty(); },
+            _nameTextField.textProperty()
+        );
+        _acceptButton.disableProperty().bind(invalidBinding);
     }
     
     @FXML
