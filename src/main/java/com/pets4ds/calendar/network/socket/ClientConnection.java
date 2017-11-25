@@ -3,18 +3,22 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.pets4ds.calendar.network;
+package com.pets4ds.calendar.network.socket;
+
+import java.net.Socket;
 
 /**
  *
  * @author Jonas Nagy-Kuhlen <jonas.nagy-kuhlen@rwth-aachen.de>
  */
-public class SessionSetupException extends Exception {
-    public SessionSetupException(String message) {
-        super(message);
+public class ClientConnection {
+    private final Socket _socket;
+    
+    public ClientConnection(Socket socket) {
+        _socket = socket;
     }
     
-    public SessionSetupException(String message, Throwable inner) {
-        super(message, inner);
+    public Socket getSocket() {
+        return _socket;
     }
 }

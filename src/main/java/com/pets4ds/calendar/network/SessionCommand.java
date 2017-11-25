@@ -5,14 +5,14 @@
  */
 package com.pets4ds.calendar.network;
 
-import java.io.*;
+import com.pets4ds.calendar.network.CommunicationSession;
+import com.pets4ds.calendar.network.CommunicationSetupHandler;
+import java.io.Serializable;
 
 /**
  *
  * @author Jonas Nagy-Kuhlen <jonas.nagy-kuhlen@rwth-aachen.de>
  */
-public interface CommunicationSetupHandler {
-    void handleSetupChanged(CommunicationSession session);
-    void handleSetupFinished(CommunicationSession session);
-    void handleSetupError(NetworkException exception);
+public interface SessionCommand extends Serializable {
+    void execute(CommunicationSession session, CommunicationSetupHandler handler);
 }

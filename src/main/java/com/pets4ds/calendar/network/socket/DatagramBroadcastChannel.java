@@ -13,15 +13,15 @@ import java.net.*;
  *
  * @author Jonas Nagy-Kuhlen <jonas.nagy-kuhlen@rwth-aachen.de>
  */
-public class BroadcastManager implements Runnable, Closeable {
+public class DatagramBroadcastChannel implements BroadcastChannel {
     private final int MAX_PACKET_SIZE = 10000;
     
-    private CommunicationSetupHandler _handler;
+    private BroadcastHandler _handler;
     private DatagramSocket _socket;
     private int _port;
     private volatile boolean _isActive;
     
-    public BroadcastManager(CommunicationSetupHandler handler, int port) {
+    public DatagramBroadcastChannel(BroadcastHandler handler, int port) {
         _handler = handler;
         _socket = null;
         _port = port;
@@ -29,7 +29,7 @@ public class BroadcastManager implements Runnable, Closeable {
     }
     
     @Override
-    public void run() {
+    public void start() {
         try {
             _socket = new DatagramSocket(null);
             _socket.setReuseAddress(true);
@@ -48,41 +48,42 @@ public class BroadcastManager implements Runnable, Closeable {
                 ObjectInputStream objectInputStream = new ObjectInputStream(binaryInputStream);
 
                 try {
-                    CommunicationSession session = (CommunicationSession)objectInputStream.readObject();
-                    _handler.handleSessionDiscovery(session);
+                    _handler.handleBroadcastReceived((Serializable)objectInputStream.readObject());
                 } catch(Exception exception) {
-                    _handler.handleError(new SessionSetupException("Unable to decode received session from broadcast.", exception));
+                    _handler.handleBroadcastError(new NetworkException("Unable to decode broadcast information..", exception));
                 }
             }
         } catch (IOException exception) {
             if(_isActive)
-                _handler.handleError(new SessionSetupException("Failed to receive broadcast.", exception));
+                _handler.handleBroadcastError(new NetworkException("Failed to receive broadcast.", exception));
         } catch(Exception exception) {
-            _handler.handleError(new SessionSetupException("Failed to initialize broadcast socket.", exception));
+            _handler.handleBroadcastError(new NetworkException("Failed to initialize broadcast socket.", exception));
         }
     }
     
-    public synchronized void publishSession(CommunicationSession session) {
+    @Override
+    public synchronized void stop() {
+        if(_isActive) {
+            _isActive = false;
+            _socket.close();
+            _socket = null;
+        }
+    }
+    
+    @Override
+    public synchronized void publish(Serializable info) {
         if(_isActive) {
             try {
                 ByteArrayOutputStream binaryOutputSream = new ByteArrayOutputStream();
                 ObjectOutputStream objectOutputSream = new ObjectOutputStream(binaryOutputSream);
-                objectOutputSream.writeObject(session);
+                objectOutputSream.writeObject(info);
                 byte[] packetBuffer = binaryOutputSream.toByteArray();
                 
                 DatagramPacket packet = new DatagramPacket(packetBuffer, packetBuffer.length, InetAddress.getByName("255.255.255.255"), _port);
                 _socket.send(packet);
             } catch(Exception exception) {
-                _handler.handleError(new SessionSetupException("Failed to send broadcast.", exception));
+                _handler.handleBroadcastError(new NetworkException("Failed to send broadcast.", exception));
             }
-        }
-    }
-    
-    @Override
-    public synchronized void close() {
-        if(_isActive) {
-            _isActive = false;
-            _socket.close();
         }
     }
 }

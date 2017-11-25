@@ -5,64 +5,51 @@
  */
 package com.pets4ds.calendar.network;
 
-import java.io.*;
-import java.util.*;
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  *
  * @author Jonas Nagy-Kuhlen <jonas.nagy-kuhlen@rwth-aachen.de>
  */
-public class CommunicationSession implements Serializable {
-    private String _name;
-    private String _description;
-    private Serializable _userData;
-    private UUID _uuid;
+public class CommunicationSession {
+    private CommunicationSessionDescription _description;
+    private PartyRole _localRole;
+    private List<CommunicationParty> _parties;
+    private Serializable _state;
+    private int _stateRevision;
     
-    public CommunicationSession(String name, String description, Serializable userData) {
-        _name = name;
+    public CommunicationSession(CommunicationSessionDescription description, PartyRole localRole) {
         _description = description;
-        _userData = userData;
-        _uuid = UUID.randomUUID();
+        _localRole = localRole;
+        _parties = new ArrayList<>();
+        _state = null;
+        _stateRevision = 0;
     }
     
-    public String getName() {
-        return _name;
-    }
-    
-    public String getDescription() {
+    public CommunicationSessionDescription getDescription() {
         return _description;
     }
     
-    public Serializable getUserData() {
-        return _userData;
+    public PartyRole getLocalRole() {
+        return _localRole;
     }
     
-    public UUID getUUID() {
-        return _uuid;
+    public List<CommunicationParty> getParties() {
+        return _parties;
     }
     
-    @Override
-    public int hashCode() {
-        int hash = 7;
-        hash = 53 * hash + Objects.hashCode(this._uuid);
-        return hash;
+    public Serializable getState() {
+        return _state;
     }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if (obj == null) {
-            return false;
-        }
-        if (getClass() != obj.getClass()) {
-            return false;
-        }
-        final CommunicationSession other = (CommunicationSession) obj;
-        if (!Objects.equals(this._uuid, other._uuid)) {
-            return false;
-        }
-        return true;
+    
+    public int getStateRevision() {
+        return _stateRevision;
+    }
+    
+    public void setState(int revision, Serializable state) {
+        _state = state;
+        _stateRevision = revision;
     }
 }
