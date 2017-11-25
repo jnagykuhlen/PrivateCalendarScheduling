@@ -7,7 +7,7 @@
 <?import javafx.scene.layout.AnchorPane?>
 
 
-<AnchorPane id="AnchorPane" prefHeight="230.0" prefWidth="415.0" xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/9.0.1" fx:controller="com.pets4ds.calendar.ui.InitiateDialogSceneController">
+<AnchorPane id="AnchorPane" prefHeight="230.0" prefWidth="415.0" xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/8.0.1" fx:controller="com.pets4ds.calendar.ui.InitiateDialogSceneController">
    <children>
       <Button fx:id="_acceptButton" layoutX="251.0" layoutY="190.0" mnemonicParsing="false" onAction="#handleAccept" prefHeight="25.0" prefWidth="150.0" text="Initiate Scheduling" />
       <Button layoutX="88.0" layoutY="190.0" mnemonicParsing="false" onAction="#handleCancel" prefHeight="25.0" prefWidth="150.0" text="Cancel" />

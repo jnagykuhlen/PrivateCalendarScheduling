@@ -7,7 +7,7 @@
 <?import javafx.scene.control.TabPane?>
 <?import javafx.scene.layout.AnchorPane?>
 
-<AnchorPane id="AnchorPane" prefHeight="768.0" prefWidth="1024.0" xmlns="http://javafx.com/javafx/9.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.pets4ds.calendar.ui.MainController">
+<AnchorPane id="AnchorPane" prefHeight="768.0" prefWidth="1024.0" xmlns="http://javafx.com/javafx/8.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.pets4ds.calendar.ui.MainController">
     <children>
       <MenuBar layoutY="1.0" prefHeight="25.0" prefWidth="1024.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
         <menus>
@@ -25,7 +25,7 @@
           </Menu>
         </menus>
       </MenuBar>
-      <TabPane fx:id="_schedulingTabPane" layoutY="26.0" prefHeight="742.0" prefWidth="1024.0" tabClosingPolicy="UNAVAILABLE" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="26.0" />
+      <TabPane fx:id="_schedulingTabPane" layoutY="26.0" prefHeight="742.0" prefWidth="1024.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="26.0" />
       <Label fx:id="_placeholderLabel" alignment="CENTER" contentDisplay="CENTER" layoutX="-1.0" layoutY="25.0" minHeight="320.0" minWidth="480.0" prefHeight="742.0" prefWidth="1024.0" text="Pending scheduling sessions are shown here. Wait for an invitation or start one yourself!" textAlignment="CENTER" textFill="#adadad" AnchorPane.bottomAnchor="1.0" AnchorPane.leftAnchor="1.0" AnchorPane.rightAnchor="1.0" AnchorPane.topAnchor="25.0" />
     </children>
 </AnchorPane>

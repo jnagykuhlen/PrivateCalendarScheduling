@@ -5,7 +5,7 @@
 <?import javafx.scene.control.ListView?>
 <?import javafx.scene.layout.AnchorPane?>
 
-<AnchorPane id="AnchorPane" prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/9.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.pets4ds.calendar.ui.SchedulingController">
+<AnchorPane id="AnchorPane" prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/8.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.pets4ds.calendar.ui.SchedulingController">
    <children>
       <Label fx:id="_descriptionLabel" alignment="TOP_LEFT" layoutX="14.0" layoutY="14.0" prefHeight="55.0" prefWidth="572.0" text="&lt;Description&gt;" wrapText="true" AnchorPane.leftAnchor="14.0" AnchorPane.rightAnchor="14.0" AnchorPane.topAnchor="14.0" />
       <ListView layoutX="14.0" layoutY="78.0" prefHeight="271.0" prefWidth="569.0" AnchorPane.bottomAnchor="50.0" AnchorPane.leftAnchor="14.0" AnchorPane.rightAnchor="14.0" AnchorPane.topAnchor="78.0" />

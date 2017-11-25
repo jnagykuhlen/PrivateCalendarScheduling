@@ -6,7 +6,7 @@
 <?import javafx.scene.layout.AnchorPane?>
 
 
-<AnchorPane id="AnchorPane" prefHeight="400.0" prefWidth="600.0" xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/9.0.1" fx:controller="com.pets4ds.calendar.ui.LoggingController">
+<AnchorPane id="AnchorPane" prefHeight="400.0" prefWidth="600.0" xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/8.0.1" fx:controller="com.pets4ds.calendar.ui.LoggingController">
    <children>
       <TextArea fx:id="_logTextArea" editable="false" layoutX="6.0" layoutY="6.0" prefHeight="388.0" prefWidth="587.0" wrapText="true" AnchorPane.bottomAnchor="6.0" AnchorPane.leftAnchor="6.0" AnchorPane.rightAnchor="6.0" AnchorPane.topAnchor="6.0">
          <contextMenu>
