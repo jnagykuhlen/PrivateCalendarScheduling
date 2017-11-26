@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.net.URL;
 import java.text.MessageFormat;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.ResourceBundle;
@@ -32,14 +33,20 @@ import javafx.scene.control.Alert.AlertType;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
+import javafx.util.Callback;
 
 public class MainController implements Initializable, Closeable, CommunicationSetupHandler, BroadcastHandler {
     private static final int MAX_NUMBER_OF_OPEN_INVITATIONS = 3;
     
-    private SchedulingManager _schedulingManager;
+    //private SchedulingManager _schedulingManager;
+    private CommunicationSetup _communicationSetup;
+    private BroadcastChannel _broadcastChannel;
+    private AddressHelper _addressHelper;
+    
     private Handler _loggingHandler;
     private Stage _loggingStage;
     private Set<CommunicationSessionDescription> _openInvitations; // TODO: Refactor into SchedulingManager class
+    private HashMap<CommunicationSessionDescription, TabInfo> _schedulingTabs;
     
     @FXML
     private TabPane _schedulingTabPane;
@@ -53,10 +60,12 @@ public class MainController implements Initializable, Closeable, CommunicationSe
         _placeholderLabel.visibleProperty().bind(binding);
         _placeholderLabel.managedProperty().bind(binding);
         
-        CommunicationSetup communicationSetup = new SocketCommunicationSetup(this);
-        BroadcastChannel broadcastChannel = new DatagramBroadcastChannel(this, 23934);
-        _schedulingManager = new SchedulingManager(communicationSetup, broadcastChannel, 23940);
+        _communicationSetup = new SocketCommunicationSetup(this);
+        _broadcastChannel = BroadcastChannelRunner.startInNewThread(new DatagramBroadcastChannel(this, 23934));
+        _addressHelper = new AddressHelper(23940, 24000);
+        // _schedulingManager = new SchedulingManager(communicationSetup, broadcastChannel, 23940);
         _openInvitations = new HashSet<>();
+        _schedulingTabs = new HashMap<>();
         
         try {
             FXMLLoader loggingLoader = new FXMLLoader(getClass().getResource("/fxml/LoggingScene.fxml"));
@@ -79,7 +88,10 @@ public class MainController implements Initializable, Closeable, CommunicationSe
     @Override
     public void close() {
         try {
-            _schedulingManager.close();
+            _broadcastChannel.stop();
+            _communicationSetup.close();
+            
+            // _schedulingManager.close();
         } catch(IOException exception) {
             Logger.getLogger(getClass().getName()).log(Level.INFO, "Unable to close scheduling manager.", exception);
         }
@@ -115,8 +127,17 @@ public class MainController implements Initializable, Closeable, CommunicationSe
                 String sessionName = dialogController.getName();
                 String sessionDescriptionText = dialogController.getDescription();
                 
-                CommunicationSession session = _schedulingManager.createSchedulingSession(sessionName, sessionDescriptionText);
-                showSchedulingSessionTab(session);
+                CommunicationSessionDescription sessionDescription = new CommunicationSessionDescription(
+                    sessionName,
+                    sessionDescriptionText,
+                    _addressHelper.getNextLocalAddress(),
+                    null
+                );
+                
+                _communicationSetup.createSession(sessionDescription);
+                _broadcastChannel.publish(sessionDescription);
+                
+                showSchedulingSessionTab(sessionDescription, new CommunicationParty("HugoInit", null, false));
                 
                 Logger.getLogger(getClass().getName()).log(
                     Level.INFO,
@@ -132,15 +153,30 @@ public class MainController implements Initializable, Closeable, CommunicationSe
     private void handleShowLog(ActionEvent event) {
         _loggingStage.show();
     }
-    
-    @Override
-    public void handleSetupStateChanged(Serializable state) {
-        Logger.getLogger(getClass().getName()).log(Level.INFO, "Communication setup changed.");
-    }
 
     @Override
-    public void handleSetupFinished() {
-        Logger.getLogger(getClass().getName()).log(Level.INFO, "Communication setup completed.");
+    public void handleSessionDisconnected(CommunicationSessionDescription sessionDescription) {
+        Platform.runLater(() -> { disconnectSession(sessionDescription); });
+    }
+    
+    private void disconnectSession(CommunicationSessionDescription sessionDescription) {
+        _schedulingTabPane.getTabs().remove(_schedulingTabs.get(sessionDescription).getTab());
+        _schedulingTabs.remove(sessionDescription);
+        
+        Alert alert = new Alert(AlertType.INFORMATION);
+        alert.setTitle("Disconnected");
+        alert.setHeaderText(null);
+        alert.setContentText(MessageFormat.format("Scheduling session {0} was closed by the initiator or the connection was lost.", sessionDescription.getName()));
+        
+        Stage stage = (Stage)alert.getDialogPane().getScene().getWindow();
+        stage.setAlwaysOnTop(true);
+        
+        alert.showAndWait();
+    }
+    
+    @Override
+    public void handleSessionChanged(CommunicationSessionDescription sessionDescription, CommunicationSessionState sessionState) {
+        _schedulingTabs.get(sessionDescription).getController().handleSessionChanged(sessionState);
     }
     
     @Override
@@ -167,7 +203,7 @@ public class MainController implements Initializable, Closeable, CommunicationSe
                 )
             );
             
-            if(_schedulingManager.getSession(sessionDescription) == null) {
+            if(!_communicationSetup.isParticipating(sessionDescription)) {
                 synchronized(_openInvitations) {
                     if(!_openInvitations.contains(sessionDescription) && _openInvitations.size() < MAX_NUMBER_OF_OPEN_INVITATIONS) {
                         _openInvitations.add(sessionDescription);
@@ -202,13 +238,18 @@ public class MainController implements Initializable, Closeable, CommunicationSe
         Optional<ButtonType> result = alert.showAndWait();
         
         if(result.isPresent() && result.get() == participateButton) {
-            CommunicationSession session = _schedulingManager.joinSchedulingSession(sessionDescription);
-            showSchedulingSessionTab(session);
-            
-            Logger.getLogger(getClass().getName()).log(
-                Level.INFO,
-                MessageFormat.format("Successfully joined scheduling session \"{0}\".", session.getDescription().getName())
-            );
+            try {
+                _communicationSetup.joinSession(sessionDescription);
+                
+                showSchedulingSessionTab(sessionDescription, new CommunicationParty("HugoPart", null, false));
+
+                Logger.getLogger(getClass().getName()).log(
+                    Level.INFO,
+                    MessageFormat.format("Successfully joined scheduling session \"{0}\".", sessionDescription.getName())
+                );
+            } catch(IOException exception) {
+                Logger.getLogger(getClass().getName()).log(Level.SEVERE, "Unable to join scheduling.", exception);
+            }
         }
         
         synchronized(_openInvitations) {
@@ -216,17 +257,28 @@ public class MainController implements Initializable, Closeable, CommunicationSe
         }
     }
     
-    private void showSchedulingSessionTab(CommunicationSession session) {
+    private void showSchedulingSessionTab(CommunicationSessionDescription sessionDescription, CommunicationParty localParty) {
         try {
             FXMLLoader tabLoader = new FXMLLoader(getClass().getResource("/fxml/SchedulingTabScene.fxml"));
+            tabLoader.setControllerFactory((Class<?> type) -> new SchedulingController(_communicationSetup, _broadcastChannel, sessionDescription, localParty));
+            
             Parent tabRoot = tabLoader.load();
             SchedulingController schedulingController = tabLoader.getController();
-
-            Tab tab = new Tab(session.getDescription().getName());
+            
+            Tab tab = new Tab(sessionDescription.getName());
             tab.setContent(tabRoot);
-
-            schedulingController.setDescription(session.getDescription().getDescriptionText());
+            tab.setOnClosed((event) -> {
+                try {
+                    _communicationSetup.leaveSession(sessionDescription);
+                } catch(IOException exception) {
+                    Logger.getLogger(getClass().getName()).log(Level.SEVERE, "Unable to leave scheduling.", exception);
+                }
+            });
+            
             _schedulingTabPane.getTabs().add(tab);
+            _schedulingTabs.put(sessionDescription, new TabInfo(schedulingController, tab));
+            
+            _communicationSetup.setLocalParty(sessionDescription, localParty);
         } catch(IOException exception) {
             Logger.getLogger(getClass().getName()).log(Level.SEVERE, "Unable to show scheduling window.", exception);
         }

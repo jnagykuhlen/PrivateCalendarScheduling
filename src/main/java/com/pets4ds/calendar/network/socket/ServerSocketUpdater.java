@@ -6,9 +6,11 @@
 package com.pets4ds.calendar.network.socket;
 
 import com.pets4ds.calendar.network.CommunicationParty;
-import com.pets4ds.calendar.network.CommunicationSession;
+import com.pets4ds.calendar.network.CommunicationSessionState;
+import com.pets4ds.calendar.network.CommunicationSessionDescription;
 import com.pets4ds.calendar.network.CommunicationSetupHandler;
 import com.pets4ds.calendar.network.NetworkException;
+import com.pets4ds.calendar.network.PartyRole;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -23,16 +25,18 @@ public class ServerSocketUpdater extends SocketUpdater implements Runnable {
     private final CommunicationSetupHandler _handler;
     private final ServerSocket _serverSocket;
     private final List<ClientConnection> _connections;
+    private CommunicationParty _localParty;
+    private int _currentRevision;
     private volatile boolean _isActive;
     
-    public ServerSocketUpdater(CommunicationSession session, CommunicationParty localParty, CommunicationSetupHandler handler, int port) throws IOException {
-        super(session);
+    public ServerSocketUpdater(CommunicationSessionDescription sessionDescription, CommunicationSetupHandler handler, int port) throws IOException {
+        super(sessionDescription);
         _handler = handler;
         _serverSocket = new ServerSocket(port);
         _connections = new ArrayList<>();
+        _localParty = CommunicationParty.UNINITIALIZED;
+        _currentRevision = 0;
         _isActive = true;
-        
-        session.getParties().add(localParty);
     }
 
     @Override
@@ -42,10 +46,10 @@ public class ServerSocketUpdater extends SocketUpdater implements Runnable {
                 Socket socket = _serverSocket.accept();
                 synchronized(_connections) {
                     _connections.add(new ClientConnection(socket));
-                    getSession().getParties().add(new CommunicationParty("<unknown>", null, false));
                 }
             } catch(IOException exception) {
-                _handler.handleSetupError(new NetworkException("Failed to accept incoming connection.", exception));
+                if(_isActive)
+                    _handler.handleSetupError(new NetworkException("Failed to accept incoming connection.", exception));
             }
         }
     }
@@ -59,37 +63,91 @@ public class ServerSocketUpdater extends SocketUpdater implements Runnable {
                 connection.getSocket().close();
 
             _connections.clear();
-            getSession().getParties().clear();
         }
         
+        _localParty = CommunicationParty.UNINITIALIZED;
         _serverSocket.close();
     }
     
     @Override
-    protected void processMessages(CommunicationSetupHandler handler) {
-        for(int i = _connections.size() - 1; i >= 0; --i) {
-            ClientConnection connection = _connections.get(i);
-            
-            ParticipantStatusMessage statusMessage;
-            while((statusMessage = readMessage(connection.getSocket(), handler)) != null) {
-                handleStatusMessage(statusMessage, i);
-            }
+    public void setLocalParty(CommunicationSetupHandler handler, CommunicationParty localParty) {
+        synchronized(_connections) {
+            _localParty = localParty;
+            publishUpdate(handler);
         }
     }
     
-    private void handleStatusMessage(ParticipantStatusMessage statusMessage, int index) {
+    @Override
+    protected void processMessages(CommunicationSetupHandler handler) {
         synchronized(_connections) {
-            getSession().getParties().set(index + 1, statusMessage.getParty());
+            boolean clientUpdated = false;
+            
+            for(int i = _connections.size() - 1; i >= 0; --i) {
+                ClientConnection connection = _connections.get(i);
+
+                try {
+                    ParticipantStatusMessage statusMessage;
+                    while((statusMessage = readMessage(connection.getSocket(), handler)) != null) {
+                        if(statusMessage.getRevision() > connection.getRevision()) {
+                            connection.setParty(statusMessage.getParty());
+                            connection.setRevision(statusMessage.getRevision());
+                            clientUpdated = true;
+                        }
+                    }
+                } catch(IOException exception) {
+                    closeConnection(handler, i);
+                }
+            }
+            
+            if(clientUpdated)
+                publishUpdate(handler);
         }
     }
     
     @Override
     protected void sendStatus(CommunicationSetupHandler handler) {
-        for(int i = _connections.size() - 1; i >= 0; --i) {
-            ClientConnection connection = _connections.get(i);
-            
-            InitiatorStatusMessage statusMessage = new InitiatorStatusMessage((CommunicationParty[])getSession().getParties().toArray(), i + 1);
-            writeMessage(connection.getSocket(), statusMessage, handler);
+        synchronized(_connections) {
+            for(int i = _connections.size() - 1; i >= 0; --i) {
+                InitiatorStatusMessage statusMessage = new InitiatorStatusMessage(getParties(), i + 1, _currentRevision);
+                
+                try {
+                    writeMessage(_connections.get(i).getSocket(), statusMessage, handler);
+                } catch(IOException exception) {
+                    closeConnection(handler, i);
+                }
+            }
         }
+    }
+    
+    private void closeConnection(CommunicationSetupHandler handler, int index) {
+        try {
+            _connections.remove(index).getSocket().close();
+        } catch(IOException exception) {
+            handler.handleSetupError(new NetworkException("Unable to close socket.", exception));
+        }
+        
+        publishUpdate(handler);
+    }
+    
+    private void publishUpdate(CommunicationSetupHandler handler) {
+        synchronized(_connections) {
+            _currentRevision++;
+            handler.handleSessionChanged(getSessionDescription(), new CommunicationSessionState(PartyRole.INITIATOR, getParties(), 0));
+            sendStatus(handler);
+        }
+    }
+    
+    private CommunicationParty[] getParties() {
+        CommunicationParty[] parties = new CommunicationParty[_connections.size() + 1];
+        parties[0] = _localParty;
+        for(int i = 0; i < _connections.size(); ++i)
+            parties[i + 1] = _connections.get(i).getParty();
+
+        return parties;
+    }
+    
+    @Override
+    public boolean isConnected() {
+        return true;
     }
 }

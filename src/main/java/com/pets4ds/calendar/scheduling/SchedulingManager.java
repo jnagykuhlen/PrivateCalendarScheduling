@@ -7,7 +7,6 @@ package com.pets4ds.calendar.scheduling;
 
 import com.pets4ds.calendar.network.BroadcastChannel;
 import com.pets4ds.calendar.network.BroadcastChannelRunner;
-import com.pets4ds.calendar.network.CommunicationSession;
 import com.pets4ds.calendar.network.CommunicationSessionDescription;
 import com.pets4ds.calendar.network.CommunicationSetup;
 import java.io.Closeable;
@@ -23,8 +22,8 @@ import java.util.logging.Logger;
  * @author Jonas Nagy-Kuhlen <jonas.nagy-kuhlen@rwth-aachen.de>
  */
 public class SchedulingManager implements Closeable {
-    private CommunicationSetup _communicationSetup;
-    private BroadcastChannel _broadcastChannel;
+    private final CommunicationSetup _communicationSetup;
+    private final BroadcastChannel _broadcastChannel;
     private int _nextSetupPort;
     
     public SchedulingManager(CommunicationSetup communicationSetup, BroadcastChannel broadcastChannel, int firstSetupPort) {
@@ -39,7 +38,7 @@ public class SchedulingManager implements Closeable {
         _communicationSetup.close();
     }
     
-    public CommunicationSession createSchedulingSession(String name, String descriptionText) {
+    public void createSchedulingSession(String name, String descriptionText) throws IOException {
         InetSocketAddress localAddress = new InetSocketAddress(_nextSetupPort);
         try {
             localAddress = new InetSocketAddress(InetAddress.getLocalHost(), _nextSetupPort);
@@ -60,16 +59,11 @@ public class SchedulingManager implements Closeable {
             null // TODO: Send information on scheduling scheme
         );
         
-        CommunicationSession session = _communicationSetup.createSession(sessionDescription);
+        _communicationSetup.createSession(sessionDescription);
         _broadcastChannel.publish(sessionDescription);
-        return session;
     }
     
-    public CommunicationSession joinSchedulingSession(CommunicationSessionDescription sessionDescription) {
-        return _communicationSetup.joinSession(sessionDescription);
-    }
-    
-    public CommunicationSession getSession(CommunicationSessionDescription sessionDescription) {
-        return _communicationSetup.getSession(sessionDescription);
+    public void joinSchedulingSession(CommunicationSessionDescription sessionDescription) throws IOException {
+        _communicationSetup.joinSession(sessionDescription);
     }
 }

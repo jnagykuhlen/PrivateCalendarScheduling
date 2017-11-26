@@ -14,12 +14,18 @@ import java.io.Serializable;
  */
 public class ParticipantStatusMessage implements Serializable {
     private final CommunicationParty _party;
+    private final int _revision;
     
-    public ParticipantStatusMessage(CommunicationParty party) {
+    public ParticipantStatusMessage(CommunicationParty party, int revision) {
         _party = party;
+        _revision = revision;
     }
     
     public CommunicationParty getParty() {
         return _party;
+    }
+    
+    public int getRevision() {
+        return _revision;
     }
 }

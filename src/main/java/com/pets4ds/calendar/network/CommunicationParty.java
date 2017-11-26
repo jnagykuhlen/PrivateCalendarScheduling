@@ -12,6 +12,8 @@ import java.io.Serializable;
  * @author Jonas Nagy-Kuhlen <jonas.nagy-kuhlen@rwth-aachen.de>
  */
 public class CommunicationParty implements Serializable {
+    public static final CommunicationParty UNINITIALIZED = new CommunicationParty(null, null, false);
+    
     private final String _name;
     private final Serializable _setupState;
     private final boolean _isReady;

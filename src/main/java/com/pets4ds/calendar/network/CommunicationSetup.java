@@ -13,9 +13,9 @@ import java.util.Iterator;
  * @author Jonas Nagy-Kuhlen <jonas.nagy-kuhlen@rwth-aachen.de>
  */
 public interface CommunicationSetup extends Closeable {
-    CommunicationSession createSession(CommunicationSessionDescription sessionDescription, CommunicationParty localParty) throws IOException;
-    CommunicationSession joinSession(CommunicationSessionDescription sessionDescription, CommunicationParty localParty) throws IOException;
-    void leaveSession(CommunicationSession session) throws IOException;
-    Iterator<CommunicationSession> getSessions();
-    CommunicationSession getSession(CommunicationSessionDescription sessionDescription);
+    void createSession(CommunicationSessionDescription sessionDescription) throws IOException;
+    void joinSession(CommunicationSessionDescription sessionDescription) throws IOException;
+    void leaveSession(CommunicationSessionDescription sessionDescription) throws IOException;
+    void setLocalParty(CommunicationSessionDescription sessionDescription, CommunicationParty localParty);
+    boolean isParticipating(CommunicationSessionDescription sessionDescription);
 }

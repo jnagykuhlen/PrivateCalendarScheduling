@@ -5,14 +5,12 @@
  */
 package com.pets4ds.calendar.network;
 
-import java.io.*;
-
 /**
  *
  * @author Jonas Nagy-Kuhlen <jonas.nagy-kuhlen@rwth-aachen.de>
  */
 public interface CommunicationSetupHandler {
-    void handleSetupChanged(CommunicationSession session);
-    void handleSetupFinished(CommunicationSession session);
+    void handleSessionChanged(CommunicationSessionDescription sessionDescription, CommunicationSessionState sessionState);
+    void handleSessionDisconnected(CommunicationSessionDescription sessionDescription);
     void handleSetupError(NetworkException exception);
 }

@@ -19,9 +19,9 @@ import java.util.concurrent.TimeUnit;
 public class SocketCommunicationSetup implements CommunicationSetup, Closeable {
     private static final int UPDATE_INTERVAL = 100;
     
-    private CommunicationSetupHandler _handler;
-    private HashMap<CommunicationSessionDescription, SocketUpdater> _currentSessions;
-    private ScheduledExecutorService _updateExecutor;
+    private final CommunicationSetupHandler _handler;
+    private final HashMap<CommunicationSessionDescription, SocketUpdater> _currentSessions;
+    private final ScheduledExecutorService _updateExecutor;
     
     public SocketCommunicationSetup(CommunicationSetupHandler handler) {
         _handler = handler;
@@ -47,57 +47,75 @@ public class SocketCommunicationSetup implements CommunicationSetup, Closeable {
     }
     
     private synchronized void updateConnections() {
-        for(SocketUpdater updater : _currentSessions.values())
+        Iterator<Map.Entry<CommunicationSessionDescription, SocketUpdater>> iterator = _currentSessions.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<CommunicationSessionDescription, SocketUpdater> entry = iterator.next();
+            SocketUpdater updater = entry.getValue();
+            
             updater.update(_handler, UPDATE_INTERVAL);
+            if(!updater.isConnected()) {
+                try {
+                    updater.close();
+                } catch(IOException exception) {
+                    _handler.handleSetupError(new NetworkException("Unable to close disconnected updater.", exception));
+                }
+                
+                iterator.remove();
+                
+                _handler.handleSessionDisconnected(entry.getKey());
+            }
+        }
     }
     
     @Override
-    public synchronized CommunicationSession createSession(CommunicationSessionDescription sessionDescription, CommunicationParty localParty) throws IOException {
+    public synchronized void createSession(CommunicationSessionDescription sessionDescription) throws IOException {
         if(sessionDescription == null)
             throw new IllegalArgumentException("Session description must not be null.");
         
         if(_currentSessions.get(sessionDescription) != null)
             throw new IllegalArgumentException("Session is already established.");
         
-        CommunicationSession session = new CommunicationSession(sessionDescription, PartyRole.INITIATOR);
-        
-        SocketUpdater updater = new ServerSocketUpdater(session, localParty, _handler, sessionDescription.getInitiatorAddress().getPort());
+        SocketUpdater updater = new ServerSocketUpdater(sessionDescription, _handler, sessionDescription.getInitiatorAddress().getPort());
         (new Thread((Runnable)updater)).start();
         
         _currentSessions.put(sessionDescription, updater);
-        
-        return session;
     }
 
     @Override
-    public synchronized CommunicationSession joinSession(CommunicationSessionDescription sessionDescription, CommunicationParty localParty) throws IOException {
+    public synchronized void joinSession(CommunicationSessionDescription sessionDescription) throws IOException {
         if(sessionDescription == null)
             throw new IllegalArgumentException("Session must not be null.");
         
         if(_currentSessions.get(sessionDescription) != null)
             throw new IllegalArgumentException("Session is already established.");
         
-        CommunicationSession session = new CommunicationSession(sessionDescription, PartyRole.PARTICIPANT);
-        SocketUpdater updater = null; // TODO: Create ClientSocketConnection
+        SocketUpdater updater = new ClientSocketUpdater(sessionDescription, sessionDescription.getInitiatorAddress());
         
-        // TODO: Connect sockets etc.
-        
-        // _currentSessions.put(sessionDescription, updater);
-        
-        return session;
+        _currentSessions.put(sessionDescription, updater);
     }
     
     @Override
-    public synchronized void leaveSession(CommunicationSession session) {
-        SocketUpdater connection = _currentSessions.get(session.getDescription());
-        if(connection == null || connection.getSession() != session)
+    public synchronized void leaveSession(CommunicationSessionDescription sessionDescription) throws IOException {
+        SocketUpdater updater = _currentSessions.get(sessionDescription);
+        if(updater == null)
             throw new IllegalArgumentException("Session is not established.");
         
-        if(session.getLocalRole() == PartyRole.INITIATOR) {
-            // TODO: Cleanup listening server
-        }
+        updater.close();
+        _currentSessions.remove(sessionDescription);
+    }
+    
+    @Override
+    public synchronized void setLocalParty(CommunicationSessionDescription sessionDescription, CommunicationParty localParty) {
+        SocketUpdater updater = _currentSessions.get(sessionDescription);
+        if(updater == null)
+            throw new IllegalArgumentException("Session is not established.");
         
-        _currentSessions.remove(session.getDescription());
+        updater.setLocalParty(_handler, localParty);
+    }
+    
+    @Override
+    public synchronized boolean isParticipating(CommunicationSessionDescription sessionDescription) {
+        return _currentSessions.containsKey(sessionDescription);
     }
     
     /*
@@ -115,18 +133,4 @@ public class SocketCommunicationSetup implements CommunicationSetup, Closeable {
         command.execute(session, _handler);
     }
     */
-    
-    @Override
-    public Iterator<CommunicationSession> getSessions() {
-        return new CommunicationSessionIterator(_currentSessions.values().iterator());
-    }
-    
-    @Override
-    public synchronized CommunicationSession getSession(CommunicationSessionDescription sessionDescription) {
-        SocketUpdater updater = _currentSessions.get(sessionDescription);
-        if(updater != null)
-            return updater.getSession();
-        
-        return null;
-    }
 }

@@ -6,7 +6,7 @@
 package com.pets4ds.calendar.network.socket;
 
 import com.pets4ds.calendar.network.CommunicationParty;
-import com.pets4ds.calendar.network.CommunicationSession;
+import com.pets4ds.calendar.network.CommunicationSessionDescription;
 import com.pets4ds.calendar.network.CommunicationSetupHandler;
 import com.pets4ds.calendar.network.NetworkException;
 import java.io.Closeable;
@@ -23,11 +23,11 @@ import java.net.Socket;
 public abstract class SocketUpdater implements Closeable {
     private static final int SEND_INTERVAL = 2000;
     
-    private CommunicationSession _session;
+    private final CommunicationSessionDescription _sessionDescription;
     private int _sendTimer;
     
-    public SocketUpdater(CommunicationSession session) {
-        _session = session;
+    public SocketUpdater(CommunicationSessionDescription sessionDescription) {
+        _sessionDescription = sessionDescription;
         _sendTimer = 0;
     }
     
@@ -42,7 +42,7 @@ public abstract class SocketUpdater implements Closeable {
         }
     }
     
-    protected <T> T readMessage(Socket socket, CommunicationSetupHandler handler) {
+    protected <T> T readMessage(Socket socket, CommunicationSetupHandler handler) throws IOException {
         try {
             InputStream inputStream = socket.getInputStream();
             if(inputStream.available() > 0) {
@@ -53,29 +53,25 @@ public abstract class SocketUpdater implements Closeable {
             handler.handleSetupError(new NetworkException("Unable to decode message.", exception));
         } catch(ClassCastException exception) {
             handler.handleSetupError(new NetworkException("Received message with incompatible type.", exception));
-        } catch(IOException exception) {
-            handler.handleSetupError(new NetworkException("Unable to read message data.", exception));
         }
         
         return null;
     }
     
-    protected <T> void writeMessage(Socket socket, T message, CommunicationSetupHandler handler) {
-        try {
-            ObjectOutputStream objectOutputStream = new ObjectOutputStream(socket.getOutputStream());
-            objectOutputStream.writeObject(message);
-        } catch(IOException exception) {
-            handler.handleSetupError(new NetworkException("Unable to send message data.", exception));
-        }
+    protected <T> void writeMessage(Socket socket, T message, CommunicationSetupHandler handler) throws IOException {
+        ObjectOutputStream objectOutputStream = new ObjectOutputStream(socket.getOutputStream());
+        objectOutputStream.writeObject((Object)message);
+    }
+    
+    public CommunicationSessionDescription getSessionDescription() {
+        return _sessionDescription;
     }
     
     @Override
     public abstract void close() throws IOException;
+    public abstract void setLocalParty(CommunicationSetupHandler handler, CommunicationParty localParty);
+    public abstract boolean isConnected();
     
     protected abstract void processMessages(CommunicationSetupHandler handler);
     protected abstract void sendStatus(CommunicationSetupHandler handler);
-    
-    public CommunicationSession getSession() {
-        return _session;
-    }
 }
