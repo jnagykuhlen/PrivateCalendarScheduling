@@ -30,6 +30,8 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.Alert.AlertType;
+import javafx.scene.layout.Border;
+import javafx.scene.text.Text;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
@@ -37,7 +39,7 @@ import javafx.stage.StageStyle;
 public class MainController implements Initializable, Closeable, CommunicationSetupHandler, BroadcastHandler {
     private static final int MAX_NUMBER_OF_OPEN_INVITATIONS = 3;
     
-    //private SchedulingManager _schedulingManager;
+    private SchedulingManager _schedulingManager;
     private CommunicationSetup _communicationSetup;
     private BroadcastChannel _broadcastChannel;
     private AddressHelper _addressHelper;
@@ -53,18 +55,30 @@ public class MainController implements Initializable, Closeable, CommunicationSe
     @FXML
     private Label _placeholderLabel;
     
-    @Override
-    public void initialize(URL url, ResourceBundle rb) {
-        BooleanBinding binding = Bindings.isEmpty(_schedulingTabPane.getTabs());
-        _placeholderLabel.visibleProperty().bind(binding);
-        _placeholderLabel.managedProperty().bind(binding);
-        
+    @FXML
+    private Text _nameText;
+    
+    @FXML
+    private Hyperlink _changeNameHyperlink;
+    
+    public MainController() {
+        _schedulingManager = new SchedulingManager();
         _communicationSetup = new SocketCommunicationSetup(this);
         _broadcastChannel = BroadcastChannelRunner.startInNewThread(new DatagramBroadcastChannel(this, 23934));
         _addressHelper = new AddressHelper(23940, 24000);
         // _schedulingManager = new SchedulingManager(communicationSetup, broadcastChannel, 23940);
         _openInvitations = new HashSet<>();
         _schedulingTabs = new HashMap<>();
+    }
+    
+    @Override
+    public void initialize(URL url, ResourceBundle rb) {
+        BooleanBinding binding = Bindings.isEmpty(_schedulingTabPane.getTabs());
+        _placeholderLabel.visibleProperty().bind(binding);
+        _placeholderLabel.managedProperty().bind(binding);
+        
+        _nameText.setText(_schedulingManager.getLocalPartyName());
+        _changeNameHyperlink.setBorder(Border.EMPTY);
         
         try {
             FXMLLoader loggingLoader = new FXMLLoader(getClass().getResource("/fxml/LoggingScene.fxml"));
@@ -89,8 +103,7 @@ public class MainController implements Initializable, Closeable, CommunicationSe
         try {
             _broadcastChannel.stop();
             _communicationSetup.close();
-            
-            // _schedulingManager.close();
+            _schedulingManager.close();
         } catch(IOException exception) {
             Logger.getLogger(getClass().getName()).log(Level.INFO, "Unable to close scheduling manager.", exception);
         }
@@ -151,6 +164,38 @@ public class MainController implements Initializable, Closeable, CommunicationSe
     @FXML
     private void handleShowLog(ActionEvent event) {
         _loggingStage.show();
+    }
+    
+    @FXML
+    private void handleChangeName(ActionEvent event) {
+        TextInputDialog dialog = new TextInputDialog(_schedulingManager.getLocalPartyName());
+        dialog.setTitle("Select Name");
+        dialog.setHeaderText(null);
+        dialog.setContentText("Name:");
+        
+        BooleanBinding invalidBinding = Bindings.createBooleanBinding(
+            () -> { return dialog.getEditor().getText().trim().isEmpty(); },
+            dialog.getEditor().textProperty()
+        );
+        
+        Button buttonOk = (Button)dialog.getDialogPane().lookupButton(ButtonType.OK);
+        buttonOk.setText("OK");
+        buttonOk.disableProperty().bind(invalidBinding);
+        
+        Button buttonCancel = (Button)dialog.getDialogPane().lookupButton(ButtonType.CANCEL);
+        buttonCancel.setText("Cancel");
+        
+        Stage stage = (Stage)dialog.getDialogPane().getScene().getWindow();
+        stage.setAlwaysOnTop(true);
+        
+        Optional<String> result = dialog.showAndWait();
+        if(result.isPresent()){
+            String localPartyName = result.get();
+            _schedulingManager.setLocalPartyName(localPartyName);
+            _nameText.setText(localPartyName);
+        }
+        
+        _changeNameHyperlink.setVisited(false);
     }
 
     @Override
