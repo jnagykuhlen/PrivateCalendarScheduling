@@ -7,15 +7,12 @@ package com.pets4ds.calendar.ui;
 
 import com.pets4ds.calendar.network.BroadcastChannel;
 import com.pets4ds.calendar.network.CommunicationParty;
-import com.pets4ds.calendar.network.CommunicationSessionDescription;
+import com.pets4ds.calendar.network.CommunicationSession;
 import com.pets4ds.calendar.network.CommunicationSessionState;
 import com.pets4ds.calendar.network.CommunicationSetup;
 import com.pets4ds.calendar.network.PartyRole;
 import java.net.URL;
-import java.text.MessageFormat;
 import java.util.ResourceBundle;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -41,7 +38,7 @@ import javafx.util.Callback;
 public class SchedulingController implements Initializable {
     private final CommunicationSetup _communicationSetup;
     private final BroadcastChannel _broadcastChannel;
-    private final CommunicationSessionDescription _sessionDescription;
+    private final CommunicationSession _session;
     private final CommunicationParty _localParty;
     
     @FXML
@@ -56,16 +53,16 @@ public class SchedulingController implements Initializable {
     @FXML
     private CheckBox _readyCheckBox;
     
-    public SchedulingController(CommunicationSetup communicationSetup, BroadcastChannel broadcastChannel, CommunicationSessionDescription sessionDescription, CommunicationParty localParty) {
+    public SchedulingController(CommunicationSetup communicationSetup, BroadcastChannel broadcastChannel, CommunicationSession session, CommunicationParty localParty) {
         _communicationSetup = communicationSetup;
         _broadcastChannel = broadcastChannel;
-        _sessionDescription = sessionDescription;
+        _session = session;
         _localParty = localParty;
     }
     
     @Override
     public void initialize(URL url, ResourceBundle rb) {
-        _descriptionLabel.setText(_sessionDescription.getDescriptionText());
+        _descriptionLabel.setText(_session.getDescriptionText());
         
         _partyListView.setCellFactory(new Callback<ListView<CommunicationParty>, ListCell<CommunicationParty>>() {
             @Override
@@ -75,7 +72,7 @@ public class SchedulingController implements Initializable {
                     protected void updateItem(CommunicationParty party, boolean empty) {
                         super.updateItem(party, empty);
                         
-                        if(party != null) {
+                        if(!empty && party != null) {
                             Color color = Color.LIGHTSALMON;
                             if(party.isReady())
                                 color = Color.LIGHTGREEN;
@@ -88,8 +85,10 @@ public class SchedulingController implements Initializable {
                             setText(party.getName());
                             setGraphic(rectangle);
                             setContentDisplay(ContentDisplay.LEFT);
+                        } else {
+                            setText(null);
+                            setGraphic(null);
                         }
-
                     }
                 };
             }
@@ -97,8 +96,6 @@ public class SchedulingController implements Initializable {
     }
     
     public void handleSessionChanged(CommunicationSessionState sessionState) {
-        Logger.getLogger(getClass().getName()).log(Level.INFO, MessageFormat.format("Communication setup changed: #parties = {0}", sessionState.getParties().length));
-        
         Platform.runLater(() -> { updateUI(sessionState); });
     }
     
@@ -113,11 +110,11 @@ public class SchedulingController implements Initializable {
     @FXML
     private void handleReady(ActionEvent event) {
         CommunicationParty party = new CommunicationParty(_localParty.getName(), _localParty.getSetupState(), _readyCheckBox.isSelected());
-        _communicationSetup.setLocalParty(_sessionDescription, party);
+        _communicationSetup.setLocalParty(_session, party);
     }
     
     @FXML
     private void handleResendInvite(ActionEvent event) {
-        _broadcastChannel.publish(_sessionDescription);
+        _broadcastChannel.publish(_session);
     }
 }

@@ -6,7 +6,7 @@
 package com.pets4ds.calendar.network.socket;
 
 import com.pets4ds.calendar.network.CommunicationParty;
-import com.pets4ds.calendar.network.CommunicationSessionDescription;
+import com.pets4ds.calendar.network.CommunicationSession;
 import com.pets4ds.calendar.network.CommunicationSetupHandler;
 import com.pets4ds.calendar.network.NetworkException;
 import java.io.Closeable;
@@ -23,11 +23,11 @@ import java.net.Socket;
 public abstract class SocketUpdater implements Closeable {
     private static final int SEND_INTERVAL = 2000;
     
-    private final CommunicationSessionDescription _sessionDescription;
+    private final CommunicationSession _session;
     private int _sendTimer;
     
-    public SocketUpdater(CommunicationSessionDescription sessionDescription) {
-        _sessionDescription = sessionDescription;
+    public SocketUpdater(CommunicationSession session) {
+        _session = session;
         _sendTimer = 0;
     }
     
@@ -63,8 +63,8 @@ public abstract class SocketUpdater implements Closeable {
         objectOutputStream.writeObject((Object)message);
     }
     
-    public CommunicationSessionDescription getSessionDescription() {
-        return _sessionDescription;
+    public CommunicationSession getSession() {
+        return _session;
     }
     
     @Override

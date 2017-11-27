@@ -13,14 +13,14 @@ import java.util.*;
  *
  * @author Jonas Nagy-Kuhlen <jonas.nagy-kuhlen@rwth-aachen.de>
  */
-public class CommunicationSessionDescription implements Serializable {
-    private String _name;
-    private String _descriptionText;
-    private InetSocketAddress _initiatorAddress;
-    private Serializable _userData;
-    private UUID _uuid;
+public class CommunicationSession implements Serializable {
+    private final String _name;
+    private final String _descriptionText;
+    private final InetSocketAddress _initiatorAddress;
+    private final Serializable _userData;
+    private final UUID _uuid;
     
-    public CommunicationSessionDescription(String name, String descriptionText, InetSocketAddress initiatorAddress, Serializable userData) {
+    public CommunicationSession(String name, String descriptionText, InetSocketAddress initiatorAddress, Serializable userData) {
         _name = name;
         _descriptionText = descriptionText;
         _initiatorAddress = initiatorAddress;
@@ -66,7 +66,7 @@ public class CommunicationSessionDescription implements Serializable {
         if (getClass() != obj.getClass()) {
             return false;
         }
-        final CommunicationSessionDescription other = (CommunicationSessionDescription) obj;
+        final CommunicationSession other = (CommunicationSession) obj;
         if (!Objects.equals(this._uuid, other._uuid)) {
             return false;
         }

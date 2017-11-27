@@ -7,7 +7,7 @@ package com.pets4ds.calendar.network.socket;
 
 import com.pets4ds.calendar.network.CommunicationParty;
 import com.pets4ds.calendar.network.CommunicationSessionState;
-import com.pets4ds.calendar.network.CommunicationSessionDescription;
+import com.pets4ds.calendar.network.CommunicationSession;
 import com.pets4ds.calendar.network.CommunicationSetupHandler;
 import com.pets4ds.calendar.network.NetworkException;
 import com.pets4ds.calendar.network.PartyRole;
@@ -26,8 +26,8 @@ public class ClientSocketUpdater extends SocketUpdater {
     private int _serverRevision;
     private boolean _isConnected;
     
-    public ClientSocketUpdater(CommunicationSessionDescription sessionDescription, InetSocketAddress address) throws IOException {
-        super(sessionDescription);
+    public ClientSocketUpdater(CommunicationSession session, InetSocketAddress address) throws IOException {
+        super(session);
         _socket = new Socket(address.getAddress(), address.getPort());
         _localParty = CommunicationParty.UNINITIALIZED;
         _currentRevision = 0;
@@ -56,7 +56,7 @@ public class ClientSocketUpdater extends SocketUpdater {
                 if(statusMessage.getRevision() > _serverRevision) {
                     CommunicationSessionState sessionState =
                             new CommunicationSessionState(PartyRole.PARTICIPANT, statusMessage.getParties(), statusMessage.getPartyIndex());
-                    handler.handleSessionChanged(getSessionDescription(), sessionState);
+                    handler.handleSessionChanged(getSession(), sessionState);
                     _serverRevision = statusMessage.getRevision();
                 }
             }

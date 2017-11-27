@@ -7,7 +7,7 @@ package com.pets4ds.calendar.scheduling;
 
 import com.pets4ds.calendar.network.BroadcastChannel;
 import com.pets4ds.calendar.network.BroadcastChannelRunner;
-import com.pets4ds.calendar.network.CommunicationSessionDescription;
+import com.pets4ds.calendar.network.CommunicationSession;
 import com.pets4ds.calendar.network.CommunicationSetup;
 import java.io.Closeable;
 import java.io.IOException;
@@ -52,18 +52,18 @@ public class SchedulingManager implements Closeable {
         
         _nextSetupPort++;
         
-        CommunicationSessionDescription sessionDescription = new CommunicationSessionDescription(
+        CommunicationSession session = new CommunicationSession(
             name,
             descriptionText,
             localAddress,
             null // TODO: Send information on scheduling scheme
         );
         
-        _communicationSetup.createSession(sessionDescription);
-        _broadcastChannel.publish(sessionDescription);
+        _communicationSetup.createSession(session);
+        _broadcastChannel.publish(session);
     }
     
-    public void joinSchedulingSession(CommunicationSessionDescription sessionDescription) throws IOException {
-        _communicationSetup.joinSession(sessionDescription);
+    public void joinSchedulingSession(CommunicationSession session) throws IOException {
+        _communicationSetup.joinSession(session);
     }
 }

@@ -10,7 +10,7 @@ package com.pets4ds.calendar.network;
  * @author Jonas Nagy-Kuhlen <jonas.nagy-kuhlen@rwth-aachen.de>
  */
 public interface CommunicationSetupHandler {
-    void handleSessionChanged(CommunicationSessionDescription sessionDescription, CommunicationSessionState sessionState);
-    void handleSessionDisconnected(CommunicationSessionDescription sessionDescription);
+    void handleSessionChanged(CommunicationSession session, CommunicationSessionState sessionState);
+    void handleSessionDisconnected(CommunicationSession session);
     void handleSetupError(NetworkException exception);
 }

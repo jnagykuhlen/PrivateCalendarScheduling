@@ -7,7 +7,7 @@ package com.pets4ds.calendar.network.socket;
 
 import com.pets4ds.calendar.network.CommunicationParty;
 import com.pets4ds.calendar.network.CommunicationSessionState;
-import com.pets4ds.calendar.network.CommunicationSessionDescription;
+import com.pets4ds.calendar.network.CommunicationSession;
 import com.pets4ds.calendar.network.CommunicationSetupHandler;
 import com.pets4ds.calendar.network.NetworkException;
 import com.pets4ds.calendar.network.PartyRole;
@@ -29,8 +29,8 @@ public class ServerSocketUpdater extends SocketUpdater implements Runnable {
     private int _currentRevision;
     private volatile boolean _isActive;
     
-    public ServerSocketUpdater(CommunicationSessionDescription sessionDescription, CommunicationSetupHandler handler, int port) throws IOException {
-        super(sessionDescription);
+    public ServerSocketUpdater(CommunicationSession session, CommunicationSetupHandler handler, int port) throws IOException {
+        super(session);
         _handler = handler;
         _serverSocket = new ServerSocket(port);
         _connections = new ArrayList<>();
@@ -132,7 +132,7 @@ public class ServerSocketUpdater extends SocketUpdater implements Runnable {
     private void publishUpdate(CommunicationSetupHandler handler) {
         synchronized(_connections) {
             _currentRevision++;
-            handler.handleSessionChanged(getSessionDescription(), new CommunicationSessionState(PartyRole.INITIATOR, getParties(), 0));
+            handler.handleSessionChanged(getSession(), new CommunicationSessionState(PartyRole.INITIATOR, getParties(), 0));
             sendStatus(handler);
         }
     }

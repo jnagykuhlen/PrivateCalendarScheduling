@@ -20,7 +20,7 @@ public class SocketCommunicationSetup implements CommunicationSetup, Closeable {
     private static final int UPDATE_INTERVAL = 100;
     
     private final CommunicationSetupHandler _handler;
-    private final HashMap<CommunicationSessionDescription, SocketUpdater> _currentSessions;
+    private final HashMap<CommunicationSession, SocketUpdater> _currentSessions;
     private final ScheduledExecutorService _updateExecutor;
     
     public SocketCommunicationSetup(CommunicationSetupHandler handler) {
@@ -47,9 +47,9 @@ public class SocketCommunicationSetup implements CommunicationSetup, Closeable {
     }
     
     private synchronized void updateConnections() {
-        Iterator<Map.Entry<CommunicationSessionDescription, SocketUpdater>> iterator = _currentSessions.entrySet().iterator();
+        Iterator<Map.Entry<CommunicationSession, SocketUpdater>> iterator = _currentSessions.entrySet().iterator();
         while (iterator.hasNext()) {
-            Map.Entry<CommunicationSessionDescription, SocketUpdater> entry = iterator.next();
+            Map.Entry<CommunicationSession, SocketUpdater> entry = iterator.next();
             SocketUpdater updater = entry.getValue();
             
             updater.update(_handler, UPDATE_INTERVAL);
@@ -68,45 +68,45 @@ public class SocketCommunicationSetup implements CommunicationSetup, Closeable {
     }
     
     @Override
-    public synchronized void createSession(CommunicationSessionDescription sessionDescription) throws IOException {
-        if(sessionDescription == null)
+    public synchronized void createSession(CommunicationSession session) throws IOException {
+        if(session == null)
             throw new IllegalArgumentException("Session description must not be null.");
         
-        if(_currentSessions.get(sessionDescription) != null)
+        if(_currentSessions.get(session) != null)
             throw new IllegalArgumentException("Session is already established.");
         
-        SocketUpdater updater = new ServerSocketUpdater(sessionDescription, _handler, sessionDescription.getInitiatorAddress().getPort());
+        SocketUpdater updater = new ServerSocketUpdater(session, _handler, session.getInitiatorAddress().getPort());
         (new Thread((Runnable)updater)).start();
         
-        _currentSessions.put(sessionDescription, updater);
+        _currentSessions.put(session, updater);
     }
 
     @Override
-    public synchronized void joinSession(CommunicationSessionDescription sessionDescription) throws IOException {
-        if(sessionDescription == null)
+    public synchronized void joinSession(CommunicationSession session) throws IOException {
+        if(session == null)
             throw new IllegalArgumentException("Session must not be null.");
         
-        if(_currentSessions.get(sessionDescription) != null)
+        if(_currentSessions.get(session) != null)
             throw new IllegalArgumentException("Session is already established.");
         
-        SocketUpdater updater = new ClientSocketUpdater(sessionDescription, sessionDescription.getInitiatorAddress());
+        SocketUpdater updater = new ClientSocketUpdater(session, session.getInitiatorAddress());
         
-        _currentSessions.put(sessionDescription, updater);
+        _currentSessions.put(session, updater);
     }
     
     @Override
-    public synchronized void leaveSession(CommunicationSessionDescription sessionDescription) throws IOException {
-        SocketUpdater updater = _currentSessions.get(sessionDescription);
+    public synchronized void leaveSession(CommunicationSession session) throws IOException {
+        SocketUpdater updater = _currentSessions.get(session);
         if(updater == null)
             throw new IllegalArgumentException("Session is not established.");
         
         updater.close();
-        _currentSessions.remove(sessionDescription);
+        _currentSessions.remove(session);
     }
     
     @Override
-    public synchronized void setLocalParty(CommunicationSessionDescription sessionDescription, CommunicationParty localParty) {
-        SocketUpdater updater = _currentSessions.get(sessionDescription);
+    public synchronized void setLocalParty(CommunicationSession session, CommunicationParty localParty) {
+        SocketUpdater updater = _currentSessions.get(session);
         if(updater == null)
             throw new IllegalArgumentException("Session is not established.");
         
@@ -114,8 +114,8 @@ public class SocketCommunicationSetup implements CommunicationSetup, Closeable {
     }
     
     @Override
-    public synchronized boolean isParticipating(CommunicationSessionDescription sessionDescription) {
-        return _currentSessions.containsKey(sessionDescription);
+    public synchronized boolean isParticipating(CommunicationSession session) {
+        return _currentSessions.containsKey(session);
     }
     
     /*
