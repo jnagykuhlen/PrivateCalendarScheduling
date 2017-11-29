@@ -48,16 +48,16 @@ public class DatagramBroadcastChannel implements BroadcastChannel {
                 ObjectInputStream objectInputStream = new ObjectInputStream(binaryInputStream);
 
                 try {
-                    _handler.handleBroadcastReceived((Serializable)objectInputStream.readObject());
+                    _handler.broadcastReceived((Serializable)objectInputStream.readObject());
                 } catch(Exception exception) {
-                    _handler.handleBroadcastError(new NetworkException("Unable to decode broadcast information..", exception));
+                    _handler.broadcastError(new NetworkException("Unable to decode broadcast information..", exception));
                 }
             }
         } catch (IOException exception) {
             if(_isActive)
-                _handler.handleBroadcastError(new NetworkException("Failed to receive broadcast.", exception));
+                _handler.broadcastError(new NetworkException("Failed to receive broadcast.", exception));
         } catch(Exception exception) {
-            _handler.handleBroadcastError(new NetworkException("Failed to initialize broadcast socket.", exception));
+            _handler.broadcastError(new NetworkException("Failed to initialize broadcast socket.", exception));
         }
     }
     
@@ -82,7 +82,7 @@ public class DatagramBroadcastChannel implements BroadcastChannel {
                 DatagramPacket packet = new DatagramPacket(packetBuffer, packetBuffer.length, InetAddress.getByName("255.255.255.255"), _port);
                 _socket.send(packet);
             } catch(Exception exception) {
-                _handler.handleBroadcastError(new NetworkException("Failed to send broadcast.", exception));
+                _handler.broadcastError(new NetworkException("Failed to send broadcast.", exception));
             }
         }
     }

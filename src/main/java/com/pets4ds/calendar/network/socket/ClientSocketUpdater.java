@@ -56,7 +56,7 @@ public class ClientSocketUpdater extends SocketUpdater {
                 if(statusMessage.getRevision() > _serverRevision) {
                     CommunicationSessionState sessionState =
                             new CommunicationSessionState(PartyRole.PARTICIPANT, statusMessage.getParties(), statusMessage.getPartyIndex());
-                    handler.handleSessionChanged(getSession(), sessionState);
+                    handler.sessionChanged(getSession(), sessionState);
                     _serverRevision = statusMessage.getRevision();
                 }
             }

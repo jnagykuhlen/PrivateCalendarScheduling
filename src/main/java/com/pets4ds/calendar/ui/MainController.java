@@ -1,22 +1,19 @@
 package com.pets4ds.calendar.ui;
 
 import com.pets4ds.calendar.network.CommunicationSession;
-import com.pets4ds.calendar.network.CommunicationSetupHandler;
-import com.pets4ds.calendar.network.*;
-import com.pets4ds.calendar.network.socket.DatagramBroadcastChannel;
-import com.pets4ds.calendar.network.socket.SocketCommunicationSetup;
+import com.pets4ds.calendar.network.CommunicationSessionState;
+import com.pets4ds.calendar.network.NetworkException;
+import com.pets4ds.calendar.scheduling.SchedulingHandler;
 import com.pets4ds.calendar.scheduling.SchedulingManager;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.io.Serializable;
 import java.net.URL;
 import java.text.MessageFormat;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.Map;
 import java.util.Optional;
 import java.util.ResourceBundle;
-import java.util.Set;
 import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -36,18 +33,12 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 
-public class MainController implements Initializable, Closeable, CommunicationSetupHandler, BroadcastHandler {
-    private static final int MAX_NUMBER_OF_OPEN_INVITATIONS = 3;
-    
-    private SchedulingManager _schedulingManager;
-    private CommunicationSetup _communicationSetup;
-    private BroadcastChannel _broadcastChannel;
-    private AddressHelper _addressHelper;
+public class MainController implements Initializable, Closeable {
+    private final SchedulingManager _schedulingManager;
+    private final Map<CommunicationSession, TabInfo> _schedulingTabs;
     
     private Handler _loggingHandler;
     private Stage _loggingStage;
-    private Set<CommunicationSession> _openInvitations; // TODO: Refactor into SchedulingManager class
-    private HashMap<CommunicationSession, TabInfo> _schedulingTabs;
     
     @FXML
     private TabPane _schedulingTabPane;
@@ -62,12 +53,39 @@ public class MainController implements Initializable, Closeable, CommunicationSe
     private Hyperlink _changeNameHyperlink;
     
     public MainController() {
-        _schedulingManager = new SchedulingManager();
-        _communicationSetup = new SocketCommunicationSetup(this);
-        _broadcastChannel = BroadcastChannelRunner.startInNewThread(new DatagramBroadcastChannel(this, 23934));
-        _addressHelper = new AddressHelper(23940, 24000);
-        // _schedulingManager = new SchedulingManager(communicationSetup, broadcastChannel, 23940);
-        _openInvitations = new HashSet<>();
+        SchedulingHandler schedulingHandler = new SchedulingHandler() {
+            @Override
+            public void sessionInviteReceived(CommunicationSession session) {
+                handleSessionInviteReceived(session);
+            }
+
+            @Override
+            public void sessionChanged(CommunicationSession session, CommunicationSessionState sessionState) {
+                handleSessionChanged(session, sessionState);
+            }
+
+            @Override
+            public void sessionDisconnected(CommunicationSession session) {
+                handleSessionDisconnected(session);
+            }
+
+            @Override
+            public void networkError(NetworkException exception) {
+                handleNetworkError(exception);
+            }
+
+            @Override
+            public void schedulingStarted(CommunicationSession session) {
+                handleSchedulingStarted(session);
+            }
+
+            @Override
+            public void schedulingFinished(CommunicationSession session) {
+                handleSchedulingFinished(session);
+            }
+        };
+        
+        _schedulingManager = new SchedulingManager(schedulingHandler, 23940, 24000, 23934);
         _schedulingTabs = new HashMap<>();
     }
     
@@ -77,7 +95,7 @@ public class MainController implements Initializable, Closeable, CommunicationSe
         _placeholderLabel.visibleProperty().bind(binding);
         _placeholderLabel.managedProperty().bind(binding);
         
-        _nameText.setText(_schedulingManager.getLocalPartyName());
+        _nameText.setText(_schedulingManager.getLocalName());
         _changeNameHyperlink.setBorder(Border.EMPTY);
         
         try {
@@ -101,8 +119,6 @@ public class MainController implements Initializable, Closeable, CommunicationSe
     @Override
     public void close() {
         try {
-            _broadcastChannel.stop();
-            _communicationSetup.close();
             _schedulingManager.close();
         } catch(IOException exception) {
             Logger.getLogger(getClass().getName()).log(Level.INFO, "Unable to close scheduling manager.", exception);
@@ -139,17 +155,9 @@ public class MainController implements Initializable, Closeable, CommunicationSe
                 String sessionName = dialogController.getName();
                 String sessionDescriptionText = dialogController.getDescription();
                 
-                CommunicationSession session = new CommunicationSession(
-                    sessionName,
-                    sessionDescriptionText,
-                    _addressHelper.getNextLocalAddress(),
-                    null
-                );
-                
-                _communicationSetup.createSession(session);
-                _broadcastChannel.publish(session);
-                
-                showSchedulingSessionTab(session, new CommunicationParty("HugoInit", null, false));
+                CommunicationSession session = _schedulingManager.createSchedulingSession(sessionName, sessionDescriptionText);
+                showSchedulingSessionTab(session);
+                _schedulingManager.publishLocalPartyState(session);
                 
                 Logger.getLogger(getClass().getName()).log(
                     Level.INFO,
@@ -168,7 +176,7 @@ public class MainController implements Initializable, Closeable, CommunicationSe
     
     @FXML
     private void handleChangeName(ActionEvent event) {
-        TextInputDialog dialog = new TextInputDialog(_schedulingManager.getLocalPartyName());
+        TextInputDialog dialog = new TextInputDialog(_schedulingManager.getLocalName());
         dialog.setTitle("Select Name");
         dialog.setHeaderText(null);
         dialog.setContentText("Name:");
@@ -191,15 +199,22 @@ public class MainController implements Initializable, Closeable, CommunicationSe
         Optional<String> result = dialog.showAndWait();
         if(result.isPresent()){
             String localPartyName = result.get();
-            _schedulingManager.setLocalPartyName(localPartyName);
+            _schedulingManager.setLocalName(localPartyName);
             _nameText.setText(localPartyName);
         }
         
         _changeNameHyperlink.setVisited(false);
     }
+    
+    private void handleSchedulingStarted(CommunicationSession session) {
+        // TODO
+    }
+    
+    private void handleSchedulingFinished(CommunicationSession session) {
+        // TODO
+    }
 
-    @Override
-    public void handleSessionDisconnected(CommunicationSession session) {
+    private void handleSessionDisconnected(CommunicationSession session) {
         Platform.runLater(() -> { disconnectSession(session); });
     }
     
@@ -218,48 +233,56 @@ public class MainController implements Initializable, Closeable, CommunicationSe
         alert.showAndWait();
     }
     
-    @Override
-    public void handleSessionChanged(CommunicationSession session, CommunicationSessionState sessionState) {
+    private void handleSessionChanged(CommunicationSession session, CommunicationSessionState sessionState) {
         _schedulingTabs.get(session).getController().handleSessionChanged(sessionState);
     }
     
-    @Override
-    public void handleSetupError(NetworkException exception) {
-        Logger.getLogger(getClass().getName()).log(Level.SEVERE, "A network error occurred during communication setup.", exception);
+    private void handleNetworkError(NetworkException exception) {
+        Logger.getLogger(getClass().getName()).log(Level.SEVERE, "A network error occurred.", exception);
     }
 
-    @Override
-    public void handleBroadcastError(NetworkException exception) {
-        Logger.getLogger(getClass().getName()).log(Level.SEVERE, "A network error occurred during broadcasting.", exception);
+    private void handleSessionInviteReceived(CommunicationSession session) {
+        Logger.getLogger(getClass().getName()).log(
+            Level.INFO,
+            MessageFormat.format(
+                "Successfully received invitation to session \"{0}\" at {1}.",
+                session.getName(),
+                session.getInitiatorAddress()
+            )
+        );
+        
+        Platform.runLater(() -> { showInvitationAlert(session); });
     }
-
-    @Override
-    public void handleBroadcastReceived(Serializable serializable) {
+    
+    private void joinSession(CommunicationSession session) {
         try {
-            CommunicationSession session = (CommunicationSession)serializable;
+            _schedulingManager.acceptInvite(session);
+            showSchedulingSessionTab(session);
+            _schedulingManager.publishLocalPartyState(session);
             
             Logger.getLogger(getClass().getName()).log(
                 Level.INFO,
-                MessageFormat.format(
-                    "Successfully received invitation to session \"{0}\" at {1}.",
-                    session.getName(),
-                    session.getInitiatorAddress()
-                )
+                MessageFormat.format("Successfully joined scheduling session \"{0}\".", session.getName())
             );
-            
-            if(!_communicationSetup.isParticipating(session)) {
-                synchronized(_openInvitations) {
-                    if(!_openInvitations.contains(session) && _openInvitations.size() < MAX_NUMBER_OF_OPEN_INVITATIONS) {
-                        _openInvitations.add(session);
-                        Platform.runLater(() -> { showInvitationAlert(session); });
-                    }
-                }
-            }
-        } catch(ClassCastException exception) {
-            Logger.getLogger(getClass().getName()).log(
-                Level.WARNING,
-                MessageFormat.format("Received invalid broadcast of type {0}.", serializable.getClass().getName())
+        } catch(IOException exception) {
+            Logger.getLogger(getClass().getName()).log(Level.SEVERE, "Unable to join scheduling.", exception);
+        }
+    }
+    
+    private void ignoreSession(CommunicationSession session) {
+        _schedulingManager.ignoreInvite(session);
+        
+        Logger.getLogger(getClass().getName()).log(
+                Level.INFO,
+                MessageFormat.format("Ignored scheduling session \"{0}\".", session.getName())
             );
+    }
+    
+    private void leaveSession(CommunicationSession session) {
+        try {
+            _schedulingManager.leaveSchedulingSession(session);
+        } catch(IOException exception) {
+            Logger.getLogger(getClass().getName()).log(Level.SEVERE, "Unable to leave scheduling.", exception);
         }
     }
     
@@ -282,47 +305,26 @@ public class MainController implements Initializable, Closeable, CommunicationSe
         Optional<ButtonType> result = alert.showAndWait();
         
         if(result.isPresent() && result.get() == participateButton) {
-            try {
-                _communicationSetup.joinSession(session);
-                
-                showSchedulingSessionTab(session, new CommunicationParty("HugoPart", null, false));
-
-                Logger.getLogger(getClass().getName()).log(
-                    Level.INFO,
-                    MessageFormat.format("Successfully joined scheduling session \"{0}\".", session.getName())
-                );
-            } catch(IOException exception) {
-                Logger.getLogger(getClass().getName()).log(Level.SEVERE, "Unable to join scheduling.", exception);
-            }
-        }
-        
-        synchronized(_openInvitations) {
-            _openInvitations.remove(session);
+            joinSession(session);
+        } else {
+            ignoreSession(session);
         }
     }
     
-    private void showSchedulingSessionTab(CommunicationSession session, CommunicationParty localParty) {
+    private void showSchedulingSessionTab(CommunicationSession session) {
         try {
             FXMLLoader tabLoader = new FXMLLoader(getClass().getResource("/fxml/SchedulingTabScene.fxml"));
-            tabLoader.setControllerFactory((Class<?> type) -> new SchedulingController(_communicationSetup, _broadcastChannel, session, localParty));
+            tabLoader.setControllerFactory((Class<?> type) -> new SchedulingController(_schedulingManager, session));
             
             Parent tabRoot = tabLoader.load();
             SchedulingController schedulingController = tabLoader.getController();
             
             Tab tab = new Tab(session.getName());
             tab.setContent(tabRoot);
-            tab.setOnClosed((event) -> {
-                try {
-                    _communicationSetup.leaveSession(session);
-                } catch(IOException exception) {
-                    Logger.getLogger(getClass().getName()).log(Level.SEVERE, "Unable to leave scheduling.", exception);
-                }
-            });
+            tab.setOnClosed((event) -> { leaveSession(session); });
             
             _schedulingTabPane.getTabs().add(tab);
             _schedulingTabs.put(session, new TabInfo(schedulingController, tab));
-            
-            _communicationSetup.setLocalParty(session, localParty);
         } catch(IOException exception) {
             Logger.getLogger(getClass().getName()).log(Level.SEVERE, "Unable to show scheduling window.", exception);
         }

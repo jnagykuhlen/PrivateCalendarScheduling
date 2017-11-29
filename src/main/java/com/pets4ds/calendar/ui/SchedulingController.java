@@ -11,6 +11,7 @@ import com.pets4ds.calendar.network.CommunicationSession;
 import com.pets4ds.calendar.network.CommunicationSessionState;
 import com.pets4ds.calendar.network.CommunicationSetup;
 import com.pets4ds.calendar.network.PartyRole;
+import com.pets4ds.calendar.scheduling.SchedulingManager;
 import java.net.URL;
 import java.util.ResourceBundle;
 import javafx.application.Platform;
@@ -36,10 +37,8 @@ import javafx.util.Callback;
  * @author Jonas Nagy-Kuhlen <jonas.nagy-kuhlen@rwth-aachen.de>
  */
 public class SchedulingController implements Initializable {
-    private final CommunicationSetup _communicationSetup;
-    private final BroadcastChannel _broadcastChannel;
+    private final SchedulingManager _schedulingManager;
     private final CommunicationSession _session;
-    private final CommunicationParty _localParty;
     
     @FXML
     private Label _descriptionLabel;
@@ -53,11 +52,9 @@ public class SchedulingController implements Initializable {
     @FXML
     private CheckBox _readyCheckBox;
     
-    public SchedulingController(CommunicationSetup communicationSetup, BroadcastChannel broadcastChannel, CommunicationSession session, CommunicationParty localParty) {
-        _communicationSetup = communicationSetup;
-        _broadcastChannel = broadcastChannel;
+    public SchedulingController(SchedulingManager schedulingManager, CommunicationSession session) {
+        _schedulingManager = schedulingManager;
         _session = session;
-        _localParty = localParty;
     }
     
     @Override
@@ -109,12 +106,11 @@ public class SchedulingController implements Initializable {
     
     @FXML
     private void handleReady(ActionEvent event) {
-        CommunicationParty party = new CommunicationParty(_localParty.getName(), _localParty.getSetupState(), _readyCheckBox.isSelected());
-        _communicationSetup.setLocalParty(_session, party);
+        _schedulingManager.setLocalReadyState(_session, _readyCheckBox.isSelected());
     }
     
     @FXML
     private void handleResendInvite(ActionEvent event) {
-        _broadcastChannel.publish(_session);
+        _schedulingManager.resendInvite(_session);
     }
 }

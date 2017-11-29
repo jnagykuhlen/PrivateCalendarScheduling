@@ -12,6 +12,6 @@ import java.io.Serializable;
  * @author Jonas Nagy-Kuhlen <jonas.nagy-kuhlen@rwth-aachen.de>
  */
 public interface BroadcastHandler {
-    void handleBroadcastReceived(Serializable serializable);
-    void handleBroadcastError(NetworkException exception);
+    void broadcastReceived(Serializable serializable);
+    void broadcastError(NetworkException exception);
 }

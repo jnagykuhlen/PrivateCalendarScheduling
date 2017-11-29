@@ -49,7 +49,7 @@ public class ServerSocketUpdater extends SocketUpdater implements Runnable {
                 }
             } catch(IOException exception) {
                 if(_isActive)
-                    _handler.handleSetupError(new NetworkException("Failed to accept incoming connection.", exception));
+                    _handler.setupError(new NetworkException("Failed to accept incoming connection.", exception));
             }
         }
     }
@@ -123,7 +123,7 @@ public class ServerSocketUpdater extends SocketUpdater implements Runnable {
         try {
             _connections.remove(index).getSocket().close();
         } catch(IOException exception) {
-            handler.handleSetupError(new NetworkException("Unable to close socket.", exception));
+            handler.setupError(new NetworkException("Unable to close socket.", exception));
         }
         
         publishUpdate(handler);
@@ -132,7 +132,7 @@ public class ServerSocketUpdater extends SocketUpdater implements Runnable {
     private void publishUpdate(CommunicationSetupHandler handler) {
         synchronized(_connections) {
             _currentRevision++;
-            handler.handleSessionChanged(getSession(), new CommunicationSessionState(PartyRole.INITIATOR, getParties(), 0));
+            handler.sessionChanged(getSession(), new CommunicationSessionState(PartyRole.INITIATOR, getParties(), 0));
             sendStatus(handler);
         }
     }

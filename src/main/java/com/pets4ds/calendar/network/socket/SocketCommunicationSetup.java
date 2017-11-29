@@ -39,7 +39,7 @@ public class SocketCommunicationSetup implements CommunicationSetup, Closeable {
             try {
                 updater.close();
             } catch(IOException exception) {
-                _handler.handleSetupError(new NetworkException("Unable to close socket.", exception));
+                _handler.setupError(new NetworkException("Unable to close socket.", exception));
             }
         }
         
@@ -57,12 +57,12 @@ public class SocketCommunicationSetup implements CommunicationSetup, Closeable {
                 try {
                     updater.close();
                 } catch(IOException exception) {
-                    _handler.handleSetupError(new NetworkException("Unable to close disconnected updater.", exception));
+                    _handler.setupError(new NetworkException("Unable to close disconnected updater.", exception));
                 }
                 
                 iterator.remove();
                 
-                _handler.handleSessionDisconnected(entry.getKey());
+                _handler.sessionDisconnected(entry.getKey());
             }
         }
     }

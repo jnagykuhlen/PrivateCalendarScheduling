@@ -50,9 +50,9 @@ public abstract class SocketUpdater implements Closeable {
                 return (T)objectInputStream.readObject();
             }
         } catch(ClassNotFoundException exception) {
-            handler.handleSetupError(new NetworkException("Unable to decode message.", exception));
+            handler.setupError(new NetworkException("Unable to decode message.", exception));
         } catch(ClassCastException exception) {
-            handler.handleSetupError(new NetworkException("Received message with incompatible type.", exception));
+            handler.setupError(new NetworkException("Received message with incompatible type.", exception));
         }
         
         return null;
