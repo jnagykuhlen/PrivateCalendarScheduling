@@ -14,6 +14,8 @@ import java.util.*;
  * @author Jonas Nagy-Kuhlen <jonas.nagy-kuhlen@rwth-aachen.de>
  */
 public class CommunicationSession implements Serializable {
+    private static final long serialVersionUID = -4473389164060835118L;
+    
     private final String _name;
     private final String _descriptionText;
     private final InetSocketAddress _initiatorAddress;

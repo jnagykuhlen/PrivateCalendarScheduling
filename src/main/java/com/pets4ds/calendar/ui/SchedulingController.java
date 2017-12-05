@@ -6,11 +6,11 @@
 package com.pets4ds.calendar.ui;
 
 import com.pets4ds.calendar.network.CommunicationParty;
-import com.pets4ds.calendar.network.CommunicationSession;
 import com.pets4ds.calendar.network.CommunicationSessionState;
 import com.pets4ds.calendar.network.PartyRole;
 import com.pets4ds.calendar.scheduling.SchedulingManager;
 import com.pets4ds.calendar.scheduling.SchedulingSession;
+import com.pets4ds.calendar.scheduling.TimeSlot;
 import java.net.URL;
 import java.util.ResourceBundle;
 import javafx.application.Platform;
@@ -19,15 +19,9 @@ import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
-import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
-import javafx.scene.paint.Color;
-import javafx.scene.paint.CycleMethod;
-import javafx.scene.paint.LinearGradient;
-import javafx.scene.paint.Stop;
-import javafx.scene.shape.Rectangle;
 import javafx.util.Callback;
 
 /**
@@ -38,6 +32,7 @@ import javafx.util.Callback;
 public class SchedulingController implements Initializable {
     private final SchedulingManager _schedulingManager;
     private final SchedulingSession _session;
+    private final byte[] _localInputs;
     
     @FXML
     private Label _descriptionLabel;
@@ -57,41 +52,42 @@ public class SchedulingController implements Initializable {
     public SchedulingController(SchedulingManager schedulingManager, SchedulingSession session) {
         _schedulingManager = schedulingManager;
         _session = session;
+        _localInputs = new byte[session.getTimeSlots().length];
     }
     
     @Override
     public void initialize(URL url, ResourceBundle rb) {
         _descriptionLabel.setText(_session.getDescriptionText());
         
+        _partyListView.setSelectionModel(new EmptySelectionModel());
         _partyListView.setCellFactory(new Callback<ListView<CommunicationParty>, ListCell<CommunicationParty>>() {
             @Override
             public ListCell<CommunicationParty> call(ListView<CommunicationParty> param) {
-                return new ListCell<CommunicationParty>() {
-                    @Override
-                    protected void updateItem(CommunicationParty party, boolean empty) {
-                        super.updateItem(party, empty);
-                        
-                        if(!empty && party != null) {
-                            Color color = Color.LIGHTSALMON;
-                            if(party.isReady())
-                                color = Color.LIGHTGREEN;
-                            
-                            Rectangle rectangle = new Rectangle(20, 20);
-                            Stop[] stops = new Stop[] { new Stop(0, color), new Stop(1, Color.TRANSPARENT)};
-                            LinearGradient gradient = new LinearGradient(0, 0, 1, 0, true, CycleMethod.NO_CYCLE, stops);
-                            rectangle.setFill(gradient);
-                            
-                            setText(party.getName());
-                            setGraphic(rectangle);
-                            setContentDisplay(ContentDisplay.LEFT);
-                        } else {
-                            setText(null);
-                            setGraphic(null);
-                        }
-                    }
-                };
+                return new PartyCell();
             }
         });
+        
+        _timeSlotListView.setSelectionModel(new EmptySelectionModel());
+        _timeSlotListView.setCellFactory(new Callback<ListView<TimeSlot>, ListCell<TimeSlot>>() {
+            @Override
+            public ListCell<TimeSlot> call(ListView<TimeSlot> param) {
+                TimeSlotCell cell = new TimeSlotCell();
+                CheckBox checkBox = cell.getCheckBox();
+                checkBox.setOnAction((event) -> { handleTimeSlotSelected(cell.getIndex(), checkBox.isSelected()); } );
+                return cell;
+            }
+        });
+        
+        _timeSlotListView.getItems().addAll((Object[])_session.getTimeSlots());
+    }
+    
+    private void handleTimeSlotSelected(int slotIndex, boolean selected) {
+        _localInputs[slotIndex] = 0;
+        if(selected)
+            _localInputs[slotIndex] = 1;
+        
+        _timeSlotListView.getItems().clear();
+        _timeSlotListView.getItems().addAll((Object[])_session.getTimeSlots());
     }
     
     public void handleSessionChanged(CommunicationSessionState sessionState) {

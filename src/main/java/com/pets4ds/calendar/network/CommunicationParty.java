@@ -12,6 +12,8 @@ import java.io.Serializable;
  * @author Jonas Nagy-Kuhlen <jonas.nagy-kuhlen@rwth-aachen.de>
  */
 public class CommunicationParty implements Serializable {
+    private static final long serialVersionUID = -8251759593566480560L;
+    
     public static final CommunicationParty UNINITIALIZED = new CommunicationParty(null, null, false);
     
     private final String _name;

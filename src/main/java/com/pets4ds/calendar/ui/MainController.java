@@ -13,6 +13,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.net.URL;
 import java.text.MessageFormat;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -159,7 +160,12 @@ public class MainController implements Initializable, Closeable {
                 String sessionDescriptionText = dialogController.getDescriptionText();
                 SchedulingSchemeIdentifier schedulingScheme = dialogController.getSchedulingScheme();
                 
-                TimeSlot[] testSlots = new TimeSlot[0];
+                LocalDateTime now = LocalDateTime.now();
+                TimeSlot[] testSlots = new TimeSlot[] {
+                    new TimeSlot(now.plusMinutes(60), now.plusMinutes(90)),
+                    new TimeSlot(now.plusMinutes(90), now.plusMinutes(120)),
+                    new TimeSlot(now.plusMinutes(120), now.plusMinutes(150))
+                };
                 
                 SchedulingSession session = _schedulingManager.createSchedulingSession(sessionName, sessionDescriptionText, schedulingScheme, testSlots);
                 showSchedulingSessionTab(session);

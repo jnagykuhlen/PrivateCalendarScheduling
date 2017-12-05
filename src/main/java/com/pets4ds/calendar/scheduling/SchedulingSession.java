@@ -14,6 +14,8 @@ import java.net.InetSocketAddress;
  * @author Jonas Nagy-Kuhlen <jonas.nagy-kuhlen@rwth-aachen.de>
  */
 public class SchedulingSession extends CommunicationSession implements Serializable {
+    private static final long serialVersionUID = 6286036120309027930L;
+    
     private final SchedulingSchemeIdentifier _schedulingScheme;
     private final TimeSlot[] _timeSlots;
     

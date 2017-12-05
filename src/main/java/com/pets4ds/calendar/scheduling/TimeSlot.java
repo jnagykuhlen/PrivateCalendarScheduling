@@ -5,13 +5,16 @@
  */
 package com.pets4ds.calendar.scheduling;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
 /**
  *
  * @author Jonas Nagy-Kuhlen <jonas.nagy-kuhlen@rwth-aachen.de>
  */
-public class TimeSlot {
+public class TimeSlot implements Serializable {
+    private static final long serialVersionUID = -6959102698676055550L;
+
     private LocalDateTime _start;
     private LocalDateTime _end;
     
