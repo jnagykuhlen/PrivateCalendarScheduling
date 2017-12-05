@@ -37,8 +37,8 @@ public class SchedulingManager implements Closeable {
     private final BroadcastChannel _broadcastChannel;
     private final AddressHelper _addressHelper;
     private final SchedulingHandler _handler;
-    private final Map<CommunicationSession, SessionInfo> _sessions;
-    private final Set<CommunicationSession> _openInvites;
+    private final Map<SchedulingSession, SessionInfo> _sessions;
+    private final Set<SchedulingSession> _openInvites;
     private String _localName;
     
     public SchedulingManager(SchedulingHandler handler, int minSetupPort, int maxSetupPort, int broadcastPort) {
@@ -81,17 +81,17 @@ public class SchedulingManager implements Closeable {
     }
     
     private void handleSessionChanged(CommunicationSession session, CommunicationSessionState sessionState) {
-        _handler.sessionChanged(session, sessionState);
+        _handler.sessionChanged((SchedulingSession)session, sessionState);
     }
     
     private void handleSessionDisconnected(CommunicationSession session) {
-        _handler.sessionDisconnected(session);
-        _sessions.remove(session);
+        _handler.sessionDisconnected((SchedulingSession)session);
+        _sessions.remove((SchedulingSession)session);
     }
     
     private void handleBroadcastReceived(Serializable serializable) {
-        if(serializable instanceof CommunicationSession) {
-            CommunicationSession session = (CommunicationSession)serializable;
+        if(serializable instanceof SchedulingSession) {
+            SchedulingSession session = (SchedulingSession)serializable;
             
             if(!_communicationSetup.isParticipating(session)) {
                 synchronized(_openInvites) {
@@ -119,12 +119,13 @@ public class SchedulingManager implements Closeable {
         }
     }
     
-    public CommunicationSession createSchedulingSession(String name, String descriptionText) throws IOException {
-        CommunicationSession session = new CommunicationSession(
+    public SchedulingSession createSchedulingSession(String name, String descriptionText, SchedulingSchemeIdentifier schedulingScheme, TimeSlot[] timeSlots) throws IOException {
+        SchedulingSession session = new SchedulingSession(
             name,
             descriptionText,
             _addressHelper.getNextLocalAddress(),
-            null // TODO: Send information on scheduling scheme
+            schedulingScheme,
+            timeSlots
         );
         
         _communicationSetup.createSession(session);
@@ -135,7 +136,7 @@ public class SchedulingManager implements Closeable {
         return session;
     }
     
-    public void acceptInvite(CommunicationSession session) throws IOException {
+    public void acceptInvite(SchedulingSession session) throws IOException {
         if(!_openInvites.contains(session))
             throw new IllegalArgumentException("There is no invite present for the specified session.");
         
@@ -147,7 +148,7 @@ public class SchedulingManager implements Closeable {
         _sessions.put(session, new SessionInfo(null)); // TODO: Add real address
     }
     
-    public void ignoreInvite(CommunicationSession session) {
+    public void ignoreInvite(SchedulingSession session) {
         if(!_openInvites.contains(session))
             throw new IllegalArgumentException("There is no invite present for the specified session.");
         
@@ -156,12 +157,12 @@ public class SchedulingManager implements Closeable {
         }
     }
     
-    public void leaveSchedulingSession(CommunicationSession session) throws IOException {
+    public void leaveSchedulingSession(SchedulingSession session) throws IOException {
         _communicationSetup.leaveSession(session);
         _sessions.remove(session);
     }
     
-    public void resendInvite(CommunicationSession session) {
+    public void resendInvite(SchedulingSession session) {
         _broadcastChannel.publish(session);
     }
     
@@ -171,11 +172,11 @@ public class SchedulingManager implements Closeable {
     
     public void setLocalName(String localName) {
         _localName = localName;
-        for(CommunicationSession session : _sessions.keySet())
+        for(SchedulingSession session : _sessions.keySet())
             publishLocalPartyState(session);
     }
     
-    public boolean getLocalReadyState(CommunicationSession session) {
+    public boolean getLocalReadyState(SchedulingSession session) {
         SessionInfo sessionInfo = _sessions.get(session);
         if(sessionInfo == null)
             throw new IllegalArgumentException("Scheduling session is not established.");
@@ -183,7 +184,7 @@ public class SchedulingManager implements Closeable {
         return sessionInfo.getReadyState();
     }
     
-    public void setLocalReadyState(CommunicationSession session, boolean isReady) {
+    public void setLocalReadyState(SchedulingSession session, boolean isReady) {
         SessionInfo sessionInfo = _sessions.get(session);
         if(sessionInfo == null)
             throw new IllegalArgumentException("Scheduling session is not established.");
@@ -192,7 +193,7 @@ public class SchedulingManager implements Closeable {
         publishLocalPartyState(session);
     }
     
-    public void publishLocalPartyState(CommunicationSession session) {
+    public void publishLocalPartyState(SchedulingSession session) {
         SessionInfo sessionInfo = _sessions.get(session);
         if(sessionInfo == null)
             throw new IllegalArgumentException("Scheduling session is not established.");

@@ -17,14 +17,12 @@ public class CommunicationSession implements Serializable {
     private final String _name;
     private final String _descriptionText;
     private final InetSocketAddress _initiatorAddress;
-    private final Serializable _userData;
     private final UUID _uuid;
     
-    public CommunicationSession(String name, String descriptionText, InetSocketAddress initiatorAddress, Serializable userData) {
+    public CommunicationSession(String name, String descriptionText, InetSocketAddress initiatorAddress) {
         _name = name;
         _descriptionText = descriptionText;
         _initiatorAddress = initiatorAddress;
-        _userData = userData;
         _uuid = UUID.randomUUID();
     }
     
@@ -38,10 +36,6 @@ public class CommunicationSession implements Serializable {
     
     public InetSocketAddress getInitiatorAddress() {
         return _initiatorAddress;
-    }
-    
-    public Serializable getUserData() {
-        return _userData;
     }
     
     public UUID getUUID() {

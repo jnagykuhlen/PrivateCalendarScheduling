@@ -8,17 +8,19 @@ package com.pets4ds.calendar.scheduling;
 import com.pets4ds.calendar.network.CommunicationSession;
 import com.pets4ds.calendar.network.CommunicationSessionState;
 import com.pets4ds.calendar.network.NetworkException;
+import java.util.List;
+import java.util.Optional;
 
 /**
  *
  * @author Jonas Nagy-Kuhlen <jonas.nagy-kuhlen@rwth-aachen.de>
  */
 public interface SchedulingHandler {
-    void sessionInviteReceived(CommunicationSession session);
-    void sessionChanged(CommunicationSession session, CommunicationSessionState sessionState);
-    void sessionDisconnected(CommunicationSession session);
+    void sessionInviteReceived(SchedulingSession session);
+    void sessionChanged(SchedulingSession session, CommunicationSessionState sessionState);
+    void sessionDisconnected(SchedulingSession session);
     void networkError(NetworkException exception);
     
-    void schedulingStarted(CommunicationSession session);
-    void schedulingFinished(CommunicationSession session);
+    void schedulingStarted(SchedulingSession session);
+    void schedulingFinished(SchedulingSession session, Optional<Integer> selectedSlotIndex);
 }

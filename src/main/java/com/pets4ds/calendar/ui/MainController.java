@@ -5,6 +5,9 @@ import com.pets4ds.calendar.network.CommunicationSessionState;
 import com.pets4ds.calendar.network.NetworkException;
 import com.pets4ds.calendar.scheduling.SchedulingHandler;
 import com.pets4ds.calendar.scheduling.SchedulingManager;
+import com.pets4ds.calendar.scheduling.SchedulingSchemeIdentifier;
+import com.pets4ds.calendar.scheduling.SchedulingSession;
+import com.pets4ds.calendar.scheduling.TimeSlot;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -55,17 +58,17 @@ public class MainController implements Initializable, Closeable {
     public MainController() {
         SchedulingHandler schedulingHandler = new SchedulingHandler() {
             @Override
-            public void sessionInviteReceived(CommunicationSession session) {
+            public void sessionInviteReceived(SchedulingSession session) {
                 handleSessionInviteReceived(session);
             }
 
             @Override
-            public void sessionChanged(CommunicationSession session, CommunicationSessionState sessionState) {
+            public void sessionChanged(SchedulingSession session, CommunicationSessionState sessionState) {
                 handleSessionChanged(session, sessionState);
             }
 
             @Override
-            public void sessionDisconnected(CommunicationSession session) {
+            public void sessionDisconnected(SchedulingSession session) {
                 handleSessionDisconnected(session);
             }
 
@@ -75,12 +78,12 @@ public class MainController implements Initializable, Closeable {
             }
 
             @Override
-            public void schedulingStarted(CommunicationSession session) {
+            public void schedulingStarted(SchedulingSession session) {
                 handleSchedulingStarted(session);
             }
 
             @Override
-            public void schedulingFinished(CommunicationSession session) {
+            public void schedulingFinished(SchedulingSession session, Optional<Integer> selectedSlotIndex) {
                 handleSchedulingFinished(session);
             }
         };
@@ -140,7 +143,7 @@ public class MainController implements Initializable, Closeable {
         try {
             FXMLLoader dialogLoader = new FXMLLoader(getClass().getResource("/fxml/InitiateDialogScene.fxml"));
             Parent dialogRoot = dialogLoader.load();
-            InitiateDialogSceneController dialogController = dialogLoader.getController();
+            InitiateDialogController dialogController = dialogLoader.getController();
 
             Stage stage = new Stage();
             stage.setScene(new Scene(dialogRoot));
@@ -153,9 +156,12 @@ public class MainController implements Initializable, Closeable {
             
             if(dialogController.isAccepted()) {
                 String sessionName = dialogController.getName();
-                String sessionDescriptionText = dialogController.getDescription();
+                String sessionDescriptionText = dialogController.getDescriptionText();
+                SchedulingSchemeIdentifier schedulingScheme = dialogController.getSchedulingScheme();
                 
-                CommunicationSession session = _schedulingManager.createSchedulingSession(sessionName, sessionDescriptionText);
+                TimeSlot[] testSlots = new TimeSlot[0];
+                
+                SchedulingSession session = _schedulingManager.createSchedulingSession(sessionName, sessionDescriptionText, schedulingScheme, testSlots);
                 showSchedulingSessionTab(session);
                 _schedulingManager.publishLocalPartyState(session);
                 
@@ -233,7 +239,7 @@ public class MainController implements Initializable, Closeable {
         alert.showAndWait();
     }
     
-    private void handleSessionChanged(CommunicationSession session, CommunicationSessionState sessionState) {
+    private void handleSessionChanged(SchedulingSession session, CommunicationSessionState sessionState) {
         _schedulingTabs.get(session).getController().handleSessionChanged(sessionState);
     }
     
@@ -241,7 +247,7 @@ public class MainController implements Initializable, Closeable {
         Logger.getLogger(getClass().getName()).log(Level.SEVERE, "A network error occurred.", exception);
     }
 
-    private void handleSessionInviteReceived(CommunicationSession session) {
+    private void handleSessionInviteReceived(SchedulingSession session) {
         Logger.getLogger(getClass().getName()).log(
             Level.INFO,
             MessageFormat.format(
@@ -254,7 +260,7 @@ public class MainController implements Initializable, Closeable {
         Platform.runLater(() -> { showInvitationAlert(session); });
     }
     
-    private void joinSession(CommunicationSession session) {
+    private void joinSession(SchedulingSession session) {
         try {
             _schedulingManager.acceptInvite(session);
             showSchedulingSessionTab(session);
@@ -269,7 +275,7 @@ public class MainController implements Initializable, Closeable {
         }
     }
     
-    private void ignoreSession(CommunicationSession session) {
+    private void ignoreSession(SchedulingSession session) {
         _schedulingManager.ignoreInvite(session);
         
         Logger.getLogger(getClass().getName()).log(
@@ -278,7 +284,7 @@ public class MainController implements Initializable, Closeable {
             );
     }
     
-    private void leaveSession(CommunicationSession session) {
+    private void leaveSession(SchedulingSession session) {
         try {
             _schedulingManager.leaveSchedulingSession(session);
         } catch(IOException exception) {
@@ -286,7 +292,7 @@ public class MainController implements Initializable, Closeable {
         }
     }
     
-    private void showInvitationAlert(CommunicationSession session) {
+    private void showInvitationAlert(SchedulingSession session) {
         ButtonType participateButton = new ButtonType("Participate", ButtonBar.ButtonData.YES);
         ButtonType ignoreButton = new ButtonType("Ignore", ButtonBar.ButtonData.NO);
         
@@ -311,7 +317,7 @@ public class MainController implements Initializable, Closeable {
         }
     }
     
-    private void showSchedulingSessionTab(CommunicationSession session) {
+    private void showSchedulingSessionTab(SchedulingSession session) {
         try {
             FXMLLoader tabLoader = new FXMLLoader(getClass().getResource("/fxml/SchedulingTabScene.fxml"));
             tabLoader.setControllerFactory((Class<?> type) -> new SchedulingController(_schedulingManager, session));
@@ -319,7 +325,7 @@ public class MainController implements Initializable, Closeable {
             Parent tabRoot = tabLoader.load();
             SchedulingController schedulingController = tabLoader.getController();
             
-            Tab tab = new Tab(session.getName());
+            Tab tab = new Tab(MessageFormat.format("{0} [{1}]", session.getName(), session.getSchedulingScheme()));
             tab.setContent(tabRoot);
             tab.setOnClosed((event) -> { leaveSession(session); });
             

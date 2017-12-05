@@ -5,6 +5,7 @@
  */
 package com.pets4ds.calendar.ui;
 
+import com.pets4ds.calendar.scheduling.SchedulingSchemeIdentifier;
 import java.net.URL;
 import java.util.ResourceBundle;
 import javafx.beans.binding.Bindings;
@@ -14,6 +15,7 @@ import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
+import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
@@ -23,10 +25,11 @@ import javafx.stage.Stage;
  *
  * @author Jonas Nagy-Kuhlen <jonas.nagy-kuhlen@rwth-aachen.de>
  */
-public class InitiateDialogSceneController implements Initializable {
+public class InitiateDialogController implements Initializable {
     private boolean _isAccepted;
     private String _name;
-    private String _description;
+    private String _descriptionText;
+    private SchedulingSchemeIdentifier _schedulingScheme;
     
     @FXML
     private Button _acceptButton;
@@ -37,17 +40,23 @@ public class InitiateDialogSceneController implements Initializable {
     @FXML
     private TextArea _descriptionTextArea;
     
+    @FXML
+    private ChoiceBox _schedulingSchemeChoiceBox;
+    
     @Override
     public void initialize(URL url, ResourceBundle rb) {
         _isAccepted = false;
         _name = null;
-        _description = null;
+        _descriptionText = null;
         
         BooleanBinding invalidBinding = Bindings.createBooleanBinding(
             () -> { return _nameTextField.getText().trim().isEmpty(); },
             _nameTextField.textProperty()
         );
         _acceptButton.disableProperty().bind(invalidBinding);
+        
+        _schedulingSchemeChoiceBox.getItems().addAll((Object[])SchedulingSchemeIdentifier.values());
+        _schedulingSchemeChoiceBox.getSelectionModel().select(0);
     }
     
     @FXML
@@ -60,7 +69,8 @@ public class InitiateDialogSceneController implements Initializable {
     private void handleAccept(ActionEvent event) {
         _isAccepted = true;
         _name = _nameTextField.getText().trim();
-        _description = _descriptionTextArea.getText().trim();
+        _descriptionText = _descriptionTextArea.getText().trim();
+        _schedulingScheme = (SchedulingSchemeIdentifier)_schedulingSchemeChoiceBox.getSelectionModel().getSelectedItem();
         
         Stage stage = (Stage)((Node)event.getSource()).getScene().getWindow();
         stage.close();
@@ -74,7 +84,11 @@ public class InitiateDialogSceneController implements Initializable {
         return _name;
     }
     
-    public String getDescription() {
-        return _description;
+    public String getDescriptionText() {
+        return _descriptionText;
+    }
+    
+    public SchedulingSchemeIdentifier getSchedulingScheme() {
+        return _schedulingScheme;
     }
 }

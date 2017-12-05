@@ -5,13 +5,12 @@
  */
 package com.pets4ds.calendar.ui;
 
-import com.pets4ds.calendar.network.BroadcastChannel;
 import com.pets4ds.calendar.network.CommunicationParty;
 import com.pets4ds.calendar.network.CommunicationSession;
 import com.pets4ds.calendar.network.CommunicationSessionState;
-import com.pets4ds.calendar.network.CommunicationSetup;
 import com.pets4ds.calendar.network.PartyRole;
 import com.pets4ds.calendar.scheduling.SchedulingManager;
+import com.pets4ds.calendar.scheduling.SchedulingSession;
 import java.net.URL;
 import java.util.ResourceBundle;
 import javafx.application.Platform;
@@ -38,7 +37,7 @@ import javafx.util.Callback;
  */
 public class SchedulingController implements Initializable {
     private final SchedulingManager _schedulingManager;
-    private final CommunicationSession _session;
+    private final SchedulingSession _session;
     
     @FXML
     private Label _descriptionLabel;
@@ -47,12 +46,15 @@ public class SchedulingController implements Initializable {
     private ListView _partyListView;
     
     @FXML
+    private ListView _timeSlotListView;
+    
+    @FXML
     private Button _resendInviteButton;
     
     @FXML
     private CheckBox _readyCheckBox;
     
-    public SchedulingController(SchedulingManager schedulingManager, CommunicationSession session) {
+    public SchedulingController(SchedulingManager schedulingManager, SchedulingSession session) {
         _schedulingManager = schedulingManager;
         _session = session;
     }
