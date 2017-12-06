@@ -3,11 +3,13 @@ package com.pets4ds.calendar.ui;
 import com.pets4ds.calendar.network.CommunicationSession;
 import com.pets4ds.calendar.network.CommunicationSessionState;
 import com.pets4ds.calendar.network.NetworkException;
+import com.pets4ds.calendar.scheduling.SchedulingException;
 import com.pets4ds.calendar.scheduling.SchedulingHandler;
 import com.pets4ds.calendar.scheduling.SchedulingManager;
 import com.pets4ds.calendar.scheduling.SchedulingSchemeIdentifier;
 import com.pets4ds.calendar.scheduling.SchedulingSession;
 import com.pets4ds.calendar.scheduling.TimeSlot;
+import com.pets4ds.calendar.scheduling.TimeSlotAllocation;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -82,10 +84,20 @@ public class MainController implements Initializable, Closeable {
             public void schedulingStarted(SchedulingSession session) {
                 handleSchedulingStarted(session);
             }
+            
+            @Override
+            public void schedulingFailed(SchedulingSession session, SchedulingException exception) {
+                handleSchedulingFailed(session, exception);
+            }
 
             @Override
             public void schedulingFinished(SchedulingSession session, Optional<Integer> selectedSlotIndex) {
-                handleSchedulingFinished(session);
+                handleSchedulingFinished(session, selectedSlotIndex);
+            }
+            
+            @Override
+            public TimeSlotAllocation[] getLocalInput(SchedulingSession session) {
+                return handleGetLocalInput(session);
             }
         };
         
@@ -173,7 +185,12 @@ public class MainController implements Initializable, Closeable {
                 
                 Logger.getLogger(getClass().getName()).log(
                     Level.INFO,
-                    MessageFormat.format("Successfully initiated scheduling session \"{0}\".", sessionName)
+                    MessageFormat.format(
+                        "Successfully initiated scheduling session \"{0}\". Participating as \"{1}\" at {2}.",
+                        sessionName,
+                        _schedulingManager.getLocalName(),
+                        _schedulingManager.getLocalSchedulingAddress(session)
+                    )
                 );
             }
         } catch(IOException exception) {
@@ -219,25 +236,75 @@ public class MainController implements Initializable, Closeable {
     }
     
     private void handleSchedulingStarted(CommunicationSession session) {
-        // TODO
+        _schedulingTabs.get(session).getController().handleSchedulingStarted();
+        
+        Logger.getLogger(getClass().getName()).log(
+            Level.INFO,
+            MessageFormat.format(
+                "Started scheduling of session \"{0}\".",
+                session.getName()
+            )
+        );
     }
     
-    private void handleSchedulingFinished(CommunicationSession session) {
-        // TODO
+    private void handleSchedulingFinished(CommunicationSession session, Optional<Integer> selectedSlotIndex) {
+        Logger.getLogger(getClass().getName()).log(
+            Level.INFO,
+            MessageFormat.format(
+                "Successfully finished scheduling of session \"{0}\". The selected slot is {1}.",
+                session.getName(),
+                selectedSlotIndex
+            )
+        );
+    }
+    
+    private void handleSchedulingFailed(CommunicationSession session, SchedulingException exception) {
+        Logger.getLogger(getClass().getName()).log(
+            Level.SEVERE,
+            MessageFormat.format(
+                "Scheduling of session \"{0}\" failed.",
+                session.getName()
+            ),
+            exception
+        );
+        
+        String title = "Scheduling Failed";
+        String descriptionText = MessageFormat.format(
+            "Scheduling computation failed for session \"{0}\". See log for further information.",
+            session.getName()
+        );
+    }
+    
+    private TimeSlotAllocation[] handleGetLocalInput(CommunicationSession session) {
+        return _schedulingTabs.get(session).getController().getLocalInputs();
     }
 
     private void handleSessionDisconnected(CommunicationSession session) {
-        Platform.runLater(() -> { disconnectSession(session); });
+        Logger.getLogger(getClass().getName()).log(
+            Level.INFO,
+            MessageFormat.format(
+                "Lost connection to session \"{0}\".",
+                session.getName()
+            )
+        );
+        
+        String title = "Disconnected";
+        String descriptionText = MessageFormat.format(
+            "Scheduling session \"{0}\" was closed by the initiator or the connection was lost.",
+            session.getName()
+        );
+        
+        Platform.runLater(() -> { disconnectSession(session, title, descriptionText); });
     }
     
-    private void disconnectSession(CommunicationSession session) {
+    private void disconnectSession(CommunicationSession session, String title, String descriptionText) {
         _schedulingTabPane.getTabs().remove(_schedulingTabs.get(session).getTab());
         _schedulingTabs.remove(session);
         
         Alert alert = new Alert(AlertType.INFORMATION);
         alert.setTitle("Disconnected");
         alert.setHeaderText(null);
-        alert.setContentText(MessageFormat.format("Scheduling session \"{0}\" was closed by the initiator or the connection was lost.", session.getName()));
+        alert.setContentText(descriptionText);
         
         Stage stage = (Stage)alert.getDialogPane().getScene().getWindow();
         stage.setAlwaysOnTop(true);
@@ -274,7 +341,12 @@ public class MainController implements Initializable, Closeable {
             
             Logger.getLogger(getClass().getName()).log(
                 Level.INFO,
-                MessageFormat.format("Successfully joined scheduling session \"{0}\".", session.getName())
+                MessageFormat.format(
+                    "Successfully joined scheduling session \"{0}\". Participating as \"{1}\" at {2}.",
+                    session.getName(),
+                    _schedulingManager.getLocalName(),
+                    _schedulingManager.getLocalSchedulingAddress(session)
+                )
             );
         } catch(IOException exception) {
             Logger.getLogger(getClass().getName()).log(Level.SEVERE, "Unable to join scheduling.", exception);
@@ -331,7 +403,7 @@ public class MainController implements Initializable, Closeable {
             Parent tabRoot = tabLoader.load();
             SchedulingController schedulingController = tabLoader.getController();
             
-            Tab tab = new Tab(MessageFormat.format("{0} [{1}]", session.getName(), session.getSchedulingScheme()));
+            Tab tab = new Tab(MessageFormat.format("{0} [{1}]", session.getName(), session.getSchedulingSchemeIdentifier()));
             tab.setContent(tabRoot);
             tab.setOnClosed((event) -> { leaveSession(session); });
             

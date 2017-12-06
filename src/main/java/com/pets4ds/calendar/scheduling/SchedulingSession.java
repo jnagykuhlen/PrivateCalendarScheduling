@@ -16,17 +16,21 @@ import java.net.InetSocketAddress;
 public class SchedulingSession extends CommunicationSession implements Serializable {
     private static final long serialVersionUID = 6286036120309027930L;
     
-    private final SchedulingSchemeIdentifier _schedulingScheme;
+    private final SchedulingSchemeIdentifier _schedulingSchemeIdentifier;
     private final TimeSlot[] _timeSlots;
     
-    public SchedulingSession(String name, String descriptionText, InetSocketAddress initiatorAddress, SchedulingSchemeIdentifier schedulingScheme, TimeSlot[] timeSlots) {
+    public SchedulingSession(String name,
+                             String descriptionText,
+                             InetSocketAddress initiatorAddress,
+                             SchedulingSchemeIdentifier schedulingSchemeIdentifier,
+                             TimeSlot[] timeSlots) {
         super(name, descriptionText, initiatorAddress);
-        _schedulingScheme = schedulingScheme;
+        _schedulingSchemeIdentifier = schedulingSchemeIdentifier;
         _timeSlots = timeSlots;
     }
     
-    public SchedulingSchemeIdentifier getSchedulingScheme() {
-        return _schedulingScheme;
+    public SchedulingSchemeIdentifier getSchedulingSchemeIdentifier() {
+        return _schedulingSchemeIdentifier;
     }
     
     public TimeSlot[] getTimeSlots() {

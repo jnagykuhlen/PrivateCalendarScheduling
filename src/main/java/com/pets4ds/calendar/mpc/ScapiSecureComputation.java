@@ -47,9 +47,9 @@ public class ScapiSecureComputation implements SecureComputation {
         }
         
         createCacheDirectory();
+        writeCircuitFile(circuitGenerator);
         writeCommunicationFile();
         writeInputFile(input);
-        writeCircuitFile(circuitGenerator);
         
         GmwProtocolInput protocolInput = new GmwProtocolInput(
             partyId,
@@ -59,11 +59,18 @@ public class ScapiSecureComputation implements SecureComputation {
             1
         );
         
+        System.out.println("Created protocol input.");
         GmwParty party = new GmwParty();
+        System.out.println("Created GMW party.");
         party.start(protocolInput);
+        System.out.println("Created GMW party.");
         party.run();
+        System.out.println("Run GMW party.");
         
         GmwProtocolOutput output = (GmwProtocolOutput)party.getOutput();
+        
+        System.out.println("Extracted protocol output.");
+        
         return output.getOutput();
     }
     

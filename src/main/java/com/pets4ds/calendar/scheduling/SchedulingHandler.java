@@ -5,10 +5,8 @@
  */
 package com.pets4ds.calendar.scheduling;
 
-import com.pets4ds.calendar.network.CommunicationSession;
 import com.pets4ds.calendar.network.CommunicationSessionState;
 import com.pets4ds.calendar.network.NetworkException;
-import java.util.List;
 import java.util.Optional;
 
 /**
@@ -23,4 +21,7 @@ public interface SchedulingHandler {
     
     void schedulingStarted(SchedulingSession session);
     void schedulingFinished(SchedulingSession session, Optional<Integer> selectedSlotIndex);
+    void schedulingFailed(SchedulingSession session, SchedulingException exception);
+    
+    TimeSlotAllocation[] getLocalInput(SchedulingSession session);
 }

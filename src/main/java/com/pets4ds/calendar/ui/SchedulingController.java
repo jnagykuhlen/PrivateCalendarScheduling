@@ -11,17 +11,21 @@ import com.pets4ds.calendar.network.PartyRole;
 import com.pets4ds.calendar.scheduling.SchedulingManager;
 import com.pets4ds.calendar.scheduling.SchedulingSession;
 import com.pets4ds.calendar.scheduling.TimeSlot;
+import com.pets4ds.calendar.scheduling.TimeSlotAllocation;
 import java.net.URL;
 import java.util.ResourceBundle;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.scene.Node;
+import javafx.scene.Parent;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
+import javafx.scene.layout.Pane;
 import javafx.util.Callback;
 
 /**
@@ -32,7 +36,7 @@ import javafx.util.Callback;
 public class SchedulingController implements Initializable {
     private final SchedulingManager _schedulingManager;
     private final SchedulingSession _session;
-    private final byte[] _localInputs;
+    private final TimeSlotAllocation[] _localInputs;
     
     @FXML
     private Label _descriptionLabel;
@@ -49,10 +53,15 @@ public class SchedulingController implements Initializable {
     @FXML
     private CheckBox _readyCheckBox;
     
+    @FXML
+    private Pane _overlayPane;
+    
     public SchedulingController(SchedulingManager schedulingManager, SchedulingSession session) {
         _schedulingManager = schedulingManager;
         _session = session;
-        _localInputs = new byte[session.getTimeSlots().length];
+        _localInputs = new TimeSlotAllocation[session.getTimeSlots().length];
+        for(int i = 0; i < _localInputs.length; ++i)
+            _localInputs[i] = TimeSlotAllocation.BUSY;
     }
     
     @Override
@@ -82,9 +91,9 @@ public class SchedulingController implements Initializable {
     }
     
     private void handleTimeSlotSelected(int slotIndex, boolean selected) {
-        _localInputs[slotIndex] = 0;
+        _localInputs[slotIndex] = TimeSlotAllocation.BUSY;
         if(selected)
-            _localInputs[slotIndex] = 1;
+            _localInputs[slotIndex] = TimeSlotAllocation.FREE;
         
         _timeSlotListView.getItems().clear();
         _timeSlotListView.getItems().addAll((Object[])_session.getTimeSlots());
@@ -92,6 +101,19 @@ public class SchedulingController implements Initializable {
     
     public void handleSessionChanged(CommunicationSessionState sessionState) {
         Platform.runLater(() -> { updateUI(sessionState); });
+    }
+    
+    public void handleSchedulingStarted() {
+        Parent root = _overlayPane.getParent();
+        for(Node node : root.getChildrenUnmodifiable())
+            node.setDisable(true);
+        
+        _overlayPane.setDisable(false);
+        _overlayPane.setVisible(true);
+    }
+    
+    public TimeSlotAllocation[] getLocalInputs() {
+        return _localInputs;
     }
     
     private void updateUI(CommunicationSessionState sessionState) {
