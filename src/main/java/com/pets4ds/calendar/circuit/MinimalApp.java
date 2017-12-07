@@ -5,6 +5,7 @@
  */
 package com.pets4ds.calendar.circuit;
 
+import com.pets4ds.calendar.mpc.scapi.ScapiCircuitBuilder;
 import edu.biu.SCProtocols.gmw.*;
 import edu.biu.scapi.circuits.circuit.BooleanCircuit;
 import edu.biu.scapi.circuits.circuit.Wire;
@@ -40,46 +41,54 @@ public class MinimalApp {
             
             ScapiCircuitBuilder builder = new ScapiCircuitBuilder(numberOfParties);
             (new BestMatchSchedulingCircuitGenerator(numberOfParties, numberOfSlots)).generate(builder);
-            builder.toBooleanCircuit().write("GeneratedCircuit.txt");
             
-            System.out.println("Circuit generation successful.");
+            try {
+                builder.writeCircuitFile("GeneratedCircuit.txt");
+                System.out.println("Circuit generation successful.");
+            } catch(IOException exception) {
+                System.out.println("Cannot write circuit file.");
+            }
             
             writeInputFiles(partyInputs, numberOfParties, numberOfSlots);
             writeCommunicationFile(numberOfParties);
             writeRunScript(numberOfParties);
             
-            System.out.println("Computing reference output...");
-            
-            try {
-                BooleanCircuit circuit = new BooleanCircuit(new File("GeneratedCircuit.txt"));
-                
-                for(int partyId = 0; partyId < numberOfParties; ++partyId) {
-                    Map<Integer, Wire> inputWires = new HashMap<>(numberOfSlots);
-                    
-                    int slotId = 0;
-                    for(Integer wireId : circuit.getInputWireIndices(partyId + 1)) {
-                        int boundedPartyId = partyId % partyInputs.length;
-                        int boundedSlotId = slotId % partyInputs[boundedPartyId].length;
-                        
-                        inputWires.put(wireId, new Wire(partyInputs[boundedPartyId][boundedSlotId]));
-                        slotId++;
+            // Run reference computation only for n > 2 parties. Scapi circuit format
+            // is broken for n = 2 parties.
+            if(numberOfParties > 2) {
+                System.out.println("Computing reference output...");
+                try {
+                    builder.toBooleanCircuit().write("GeneratedCircuitReference.txt");
+                    BooleanCircuit circuit = new BooleanCircuit(new File("GeneratedCircuitReference.txt"));
+
+                    for(int partyId = 0; partyId < numberOfParties; ++partyId) {
+                        Map<Integer, Wire> inputWires = new HashMap<>(numberOfSlots);
+
+                        int slotId = 0;
+                        for(Integer wireId : circuit.getInputWireIndices(partyId + 1)) {
+                            int boundedPartyId = partyId % partyInputs.length;
+                            int boundedSlotId = slotId % partyInputs[boundedPartyId].length;
+
+                            inputWires.put(wireId, new Wire(partyInputs[boundedPartyId][boundedSlotId]));
+                            slotId++;
+                        }
+
+                        circuit.setInputs(inputWires, partyId + 1);
                     }
-                    
-                    circuit.setInputs(inputWires, partyId + 1);
+
+                    System.out.println("Inputs set.");
+
+                    Map<Integer, Wire> outputs = circuit.compute();
+
+                    System.out.print("Reference output: ");
+                    for(Integer wireId : circuit.getOutputWireIndices(1)) {
+                        System.out.print(outputs.get(wireId).getValue());
+                    }
+                    System.out.println();
+                } catch(Exception ex) {
+                    System.out.println("Cannot load inputs.");
+                    ex.printStackTrace();
                 }
-                
-                System.out.println("Inputs set.");
-                
-                Map<Integer, Wire> outputs = circuit.compute();
-                
-                System.out.print("Reference output: ");
-                for(Integer wireId : circuit.getOutputWireIndices(1)) {
-                    System.out.print(outputs.get(wireId).getValue());
-                }
-                System.out.println();
-            } catch(Exception ex) {
-                System.out.println("Cannot load inputs.");
-                ex.printStackTrace();
             }
             
             System.out.println("Starting other parties...");

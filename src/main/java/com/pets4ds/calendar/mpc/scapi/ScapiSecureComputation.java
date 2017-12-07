@@ -3,10 +3,11 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.pets4ds.calendar.mpc;
+package com.pets4ds.calendar.mpc.scapi;
 
 import com.pets4ds.calendar.circuit.CircuitGenerator;
-import com.pets4ds.calendar.circuit.ScapiCircuitBuilder;
+import com.pets4ds.calendar.mpc.SecureComputation;
+import com.pets4ds.calendar.mpc.SecureComputationException;
 import edu.biu.SCProtocols.gmw.GmwParty;
 import edu.biu.SCProtocols.gmw.GmwProtocolInput;
 import edu.biu.SCProtocols.gmw.GmwProtocolOutput;
@@ -89,8 +90,8 @@ public class ScapiSecureComputation implements SecureComputation {
             
             for(int partyId = 0; partyId < _partyAddresses.length; ++partyId)
                 writer.write("party_" + partyId + "_port = " + _partyAddresses[partyId].getPort() + "\n");
-        } catch(IOException ex) {
-            throw new SecureComputationException("Unable to write communication file.", ex);
+        } catch(IOException exception) {
+            throw new SecureComputationException("Unable to write communication file.", exception);
         }
     }
     
@@ -98,15 +99,19 @@ public class ScapiSecureComputation implements SecureComputation {
         try(FileWriter writer = new FileWriter(getInputFilePath())) {
             for (int i = 0; i < input.length; ++i)
                 writer.write(Byte.toString(input[i]) + "\n");
-        } catch(IOException ex) {
-            throw new SecureComputationException("Unable to write input file.", ex);
+        } catch(IOException exception) {
+            throw new SecureComputationException("Unable to write input file.", exception);
         }
     }
     
     private void writeCircuitFile(CircuitGenerator circuitGenerator) throws SecureComputationException {
-        ScapiCircuitBuilder builder = new ScapiCircuitBuilder(circuitGenerator.getNumberOfParties());
-        circuitGenerator.generate(builder);
-        builder.toBooleanCircuit().write(getCircuitFilePath());
+        try {
+            ScapiCircuitBuilder builder = new ScapiCircuitBuilder(circuitGenerator.getNumberOfParties());
+            circuitGenerator.generate(builder);
+            builder.writeCircuitFile(getCircuitFilePath());
+        } catch(IOException exception) {
+            throw new SecureComputationException("Unable to write circuit file.", exception);
+        }
     }
     
     private String getCommunicationFilePath() {
