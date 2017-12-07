@@ -8,6 +8,7 @@ import com.pets4ds.calendar.scheduling.SchedulingHandler;
 import com.pets4ds.calendar.scheduling.SchedulingManager;
 import com.pets4ds.calendar.scheduling.SchedulingSchemeIdentifier;
 import com.pets4ds.calendar.scheduling.SchedulingSession;
+import com.pets4ds.calendar.scheduling.SchedulingState;
 import com.pets4ds.calendar.scheduling.TimeSlot;
 import com.pets4ds.calendar.scheduling.TimeSlotAllocation;
 
@@ -236,8 +237,6 @@ public class MainController implements Initializable, Closeable {
     }
     
     private void handleSchedulingStarted(CommunicationSession session) {
-        _schedulingTabs.get(session).getController().handleSchedulingStarted();
-        
         Logger.getLogger(getClass().getName()).log(
             Level.INFO,
             MessageFormat.format(
@@ -245,17 +244,25 @@ public class MainController implements Initializable, Closeable {
                 session.getName()
             )
         );
+        
+        _schedulingTabs.get(session).getController().handleSchedulingStarted();
     }
     
     private void handleSchedulingFinished(CommunicationSession session, Optional<Integer> selectedSlotIndex) {
+        String additionalMessage = "No matching slot was found.";
+        if(selectedSlotIndex.isPresent())
+            additionalMessage = MessageFormat.format("The time slot with index {0} was selected.", selectedSlotIndex.get());
+        
         Logger.getLogger(getClass().getName()).log(
             Level.INFO,
             MessageFormat.format(
-                "Successfully finished scheduling of session \"{0}\". The selected slot is {1}.",
+                "Successfully finished scheduling of session \"{0}\". {1}",
                 session.getName(),
-                selectedSlotIndex
+                additionalMessage
             )
         );
+        
+        _schedulingTabs.get(session).getController().handleSchedulingFinished(selectedSlotIndex);
     }
     
     private void handleSchedulingFailed(CommunicationSession session, SchedulingException exception) {
@@ -288,13 +295,15 @@ public class MainController implements Initializable, Closeable {
             )
         );
         
-        String title = "Disconnected";
-        String descriptionText = MessageFormat.format(
-            "Scheduling session \"{0}\" was closed by the initiator or the connection was lost.",
-            session.getName()
-        );
-        
-        Platform.runLater(() -> { disconnectSession(session, title, descriptionText); });
+        if(_schedulingManager.getSchedulingState((SchedulingSession)session) == SchedulingState.SETUP) {
+            String title = "Disconnected";
+            String descriptionText = MessageFormat.format(
+                "Scheduling session \"{0}\" was closed by the initiator or the connection was lost.",
+                session.getName()
+            );
+
+            Platform.runLater(() -> { disconnectSession(session, title, descriptionText); });
+        }
     }
     
     private void disconnectSession(CommunicationSession session, String title, String descriptionText) {
@@ -357,14 +366,15 @@ public class MainController implements Initializable, Closeable {
         _schedulingManager.ignoreInvite(session);
         
         Logger.getLogger(getClass().getName()).log(
-                Level.INFO,
-                MessageFormat.format("Ignored scheduling session \"{0}\".", session.getName())
-            );
+            Level.INFO,
+            MessageFormat.format("Ignored scheduling session \"{0}\".", session.getName())
+        );
     }
     
     private void leaveSession(SchedulingSession session) {
         try {
-            _schedulingManager.leaveSchedulingSession(session);
+            if(_schedulingManager.isParticipating(session))
+                _schedulingManager.leaveSchedulingSession(session);
         } catch(IOException exception) {
             Logger.getLogger(getClass().getName()).log(Level.SEVERE, "Unable to leave scheduling.", exception);
         }

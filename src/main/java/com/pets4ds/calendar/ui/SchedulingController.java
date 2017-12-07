@@ -13,6 +13,7 @@ import com.pets4ds.calendar.scheduling.SchedulingSession;
 import com.pets4ds.calendar.scheduling.TimeSlot;
 import com.pets4ds.calendar.scheduling.TimeSlotAllocation;
 import java.net.URL;
+import java.util.Optional;
 import java.util.ResourceBundle;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
@@ -22,10 +23,15 @@ import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
+import javafx.scene.control.Hyperlink;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
+import javafx.scene.control.ProgressIndicator;
+import javafx.scene.layout.Border;
 import javafx.scene.layout.Pane;
+import javafx.scene.text.Text;
+import javafx.scene.text.TextFlow;
 import javafx.util.Callback;
 
 /**
@@ -37,6 +43,7 @@ public class SchedulingController implements Initializable {
     private final SchedulingManager _schedulingManager;
     private final SchedulingSession _session;
     private final TimeSlotAllocation[] _localInputs;
+    private Optional<Integer> _selectedSlotIndex;
     
     @FXML
     private Label _descriptionLabel;
@@ -56,12 +63,32 @@ public class SchedulingController implements Initializable {
     @FXML
     private Pane _overlayPane;
     
+    @FXML
+    private ProgressIndicator _progressIndicator;
+    
+    @FXML
+    private Label _progressLabel;
+    
+    @FXML
+    private TextFlow _resultTextFlow;
+    
+    @FXML
+    private Text _resultIntroText;
+    
+    @FXML
+    private Text _resultText;
+    
+    @FXML
+    private Hyperlink _exportHyperlink;
+    
     public SchedulingController(SchedulingManager schedulingManager, SchedulingSession session) {
         _schedulingManager = schedulingManager;
         _session = session;
         _localInputs = new TimeSlotAllocation[session.getTimeSlots().length];
         for(int i = 0; i < _localInputs.length; ++i)
             _localInputs[i] = TimeSlotAllocation.BUSY;
+        
+        _selectedSlotIndex = null;
     }
     
     @Override
@@ -88,6 +115,7 @@ public class SchedulingController implements Initializable {
         });
         
         _timeSlotListView.getItems().addAll((Object[])_session.getTimeSlots());
+        _exportHyperlink.setBorder(Border.EMPTY);
     }
     
     private void handleTimeSlotSelected(int slotIndex, boolean selected) {
@@ -100,10 +128,31 @@ public class SchedulingController implements Initializable {
     }
     
     public void handleSessionChanged(CommunicationSessionState sessionState) {
-        Platform.runLater(() -> { updateUI(sessionState); });
+        Platform.runLater(() -> { updatePartyList(sessionState); });
     }
     
     public void handleSchedulingStarted() {
+        Platform.runLater(() -> { updateProgressScreen(); });
+    }
+    
+    public void handleSchedulingFinished(Optional<Integer> selectedSlotIndex) {
+        _selectedSlotIndex = selectedSlotIndex;
+        Platform.runLater(() -> { updateResultScreen(selectedSlotIndex); });
+    }
+    
+    public TimeSlotAllocation[] getLocalInputs() {
+        return _localInputs;
+    }
+    
+    private void updatePartyList(CommunicationSessionState sessionState) {
+        _resendInviteButton.setDisable(sessionState.getLocalRole() != PartyRole.INITIATOR);
+        
+        _partyListView.getItems().clear();
+        for(int i = 0; i < sessionState.getParties().length; ++i)
+            _partyListView.getItems().add(sessionState.getParties()[i]);
+    }
+    
+    private void updateProgressScreen() {
         Parent root = _overlayPane.getParent();
         for(Node node : root.getChildrenUnmodifiable())
             node.setDisable(true);
@@ -112,16 +161,18 @@ public class SchedulingController implements Initializable {
         _overlayPane.setVisible(true);
     }
     
-    public TimeSlotAllocation[] getLocalInputs() {
-        return _localInputs;
-    }
-    
-    private void updateUI(CommunicationSessionState sessionState) {
-        _resendInviteButton.setDisable(sessionState.getLocalRole() != PartyRole.INITIATOR);
+    private void updateResultScreen(Optional<Integer> selectedSlotIndex) {
+        _progressLabel.setVisible(false);
+        _resultTextFlow.setVisible(true);
+        _progressIndicator.setProgress(1.0);
         
-        _partyListView.getItems().clear();
-        for(int i = 0; i < sessionState.getParties().length; ++i)
-            _partyListView.getItems().add(sessionState.getParties()[i]);
+        if(selectedSlotIndex.isPresent()) {
+            _resultText.setText(_session.getTimeSlots()[selectedSlotIndex.get()].toString());
+        } else {
+            _resultTextFlow.getChildren().clear();
+            _resultTextFlow.getChildren().add(_resultIntroText);
+            _resultIntroText.setText("Scheduling completed. No matching date was found.");
+        }
     }
     
     @FXML
@@ -132,5 +183,12 @@ public class SchedulingController implements Initializable {
     @FXML
     private void handleResendInvite(ActionEvent event) {
         _schedulingManager.resendInvite(_session);
+    }
+    
+    @FXML
+    private void handleExportResult(ActionEvent event) {
+        // TODO
+        
+        _exportHyperlink.setVisited(false);
     }
 }

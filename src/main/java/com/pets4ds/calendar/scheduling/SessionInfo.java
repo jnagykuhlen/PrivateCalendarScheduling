@@ -15,10 +15,12 @@ import java.net.InetSocketAddress;
 public class SessionInfo {
     private final InetSocketAddress _localSchedulingAddress;
     private boolean _isReady;
+    private SchedulingState _schedulingState;
     
     public SessionInfo(InetSocketAddress localSchedulingAddress) {
         _localSchedulingAddress = localSchedulingAddress;
         _isReady = false;
+        _schedulingState = SchedulingState.SETUP;
     }
     
     public InetSocketAddress getLocalSchedulingAddress() {
@@ -31,5 +33,13 @@ public class SessionInfo {
     
     public void setReadyState(boolean isReady) {
         _isReady = isReady;
+    }
+    
+    public SchedulingState getSchedulingState() {
+        return _schedulingState;
+    }
+    
+    public void setSchedulingState(SchedulingState schedulingState) {
+        _schedulingState = schedulingState;
     }
 }

@@ -88,22 +88,30 @@ public class SchedulingManager implements Closeable {
     }
     
     private void handleSessionChanged(CommunicationSession session, CommunicationSessionState sessionState) {
+        SessionInfo sessionInfo = _sessions.get((SchedulingSession)session);
+        if(sessionInfo == null)
+            throw new IllegalArgumentException("Scheduling session is not established.");
+        
         _handler.sessionChanged((SchedulingSession)session, sessionState);
         
-        CommunicationParty[] parties = sessionState.getParties();
-        
-        boolean setupCompleted = parties.length > 0;
-        for(int i = 0; i < parties.length; ++i)
-            setupCompleted = setupCompleted && parties[i].isReady();
-        
-        if(setupCompleted) {
-            TimeSlotAllocation[] localInput = _handler.getLocalInput((SchedulingSession)session);
-            _handler.schedulingStarted((SchedulingSession)session);
-            (new Thread(() -> { schedule((SchedulingSession)session, sessionState, localInput); })).start();
+        if(sessionInfo.getSchedulingState() == SchedulingState.SETUP) {
+            CommunicationParty[] parties = sessionState.getParties();
+
+            boolean setupCompleted = parties.length > 0;
+            for(int i = 0; i < parties.length; ++i)
+                setupCompleted = setupCompleted && parties[i].isReady();
+
+            if(setupCompleted) {
+                sessionInfo.setSchedulingState(SchedulingState.COMPUTING);
+                
+                TimeSlotAllocation[] localInput = _handler.getLocalInput((SchedulingSession)session);
+                _handler.schedulingStarted((SchedulingSession)session);
+                (new Thread(() -> { schedule((SchedulingSession)session, sessionState, sessionInfo, localInput); })).start();
+            }
         }
     }
     
-    private void schedule(SchedulingSession session, CommunicationSessionState sessionState, TimeSlotAllocation[] localInput) {
+    private void schedule(SchedulingSession session, CommunicationSessionState sessionState, SessionInfo sessionInfo, TimeSlotAllocation[] localInput) {
         if(localInput.length != session.getTimeSlots().length)
             throw new IllegalArgumentException("Number of local input values must match the number of time slots.");
         
@@ -135,6 +143,8 @@ public class SchedulingManager implements Closeable {
         } catch(InvalidOutputException exception) {
             _handler.schedulingFailed(session, new SchedulingException("Secure computation resulted in inconsistent output.", exception));
         }
+        
+        sessionInfo.setSchedulingState(SchedulingState.FINISHED);
     }
     
     private void handleSessionDisconnected(CommunicationSession session) {
@@ -263,5 +273,17 @@ public class SchedulingManager implements Closeable {
             throw new IllegalArgumentException("Scheduling session is not established.");
         
         return sessionInfo.getLocalSchedulingAddress();
+    }
+    
+    public SchedulingState getSchedulingState(SchedulingSession session) {
+        SessionInfo sessionInfo = _sessions.get(session);
+        if(sessionInfo == null)
+            throw new IllegalArgumentException("Scheduling session is not established.");
+        
+        return sessionInfo.getSchedulingState();
+    }
+    
+    public boolean isParticipating(SchedulingSession session) {
+        return _sessions.containsKey(session);
     }
 }

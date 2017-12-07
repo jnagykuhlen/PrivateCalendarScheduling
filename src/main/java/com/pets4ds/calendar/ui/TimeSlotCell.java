@@ -19,9 +19,6 @@ import javafx.scene.control.ListCell;
  * @author Jonas Nagy-Kuhlen <jonas.nagy-kuhlen@rwth-aachen.de>
  */
 public class TimeSlotCell extends ListCell<TimeSlot> {
-    private final static DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL);
-    private final static DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
-    
     private final CheckBox _checkBox;
     
     public TimeSlotCell() {
@@ -33,19 +30,8 @@ public class TimeSlotCell extends ListCell<TimeSlot> {
         super.updateItem(timeSlot, empty);
 
         if(!empty && timeSlot != null) {
-            String text = MessageFormat.format(
-                "{0} from {1} to {2}",
-                timeSlot.getStartDate().format(DATE_FORMATTER),
-                timeSlot.getStartDate().format(TIME_FORMATTER),
-                timeSlot.getEndDate().format(TIME_FORMATTER)
-            );
-
-            long additionalDays = ChronoUnit.DAYS.between(timeSlot.getStartDate().toLocalDate(), timeSlot.getEndDate().toLocalDate());
-            if(additionalDays > 0)
-                text += MessageFormat.format(" (+{0})", additionalDays);
-            
             setBackground(StyleHelper.getHighlightBackground(_checkBox.isSelected()));
-            setText(text);
+            setText(timeSlot.toString());
             setGraphic(_checkBox);
             setContentDisplay(ContentDisplay.LEFT);
         } else {
