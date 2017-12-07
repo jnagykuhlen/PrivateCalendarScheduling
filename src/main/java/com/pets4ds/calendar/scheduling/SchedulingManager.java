@@ -6,7 +6,7 @@
 package com.pets4ds.calendar.scheduling;
 
 import com.pets4ds.calendar.circuit.CircuitGenerator;
-import com.pets4ds.calendar.mpc.ScapiSecureComputation;
+import com.pets4ds.calendar.mpc.scapi.ScapiSecureComputation;
 import com.pets4ds.calendar.mpc.SecureComputation;
 import com.pets4ds.calendar.mpc.SecureComputationException;
 import com.pets4ds.calendar.network.AddressHelper;
