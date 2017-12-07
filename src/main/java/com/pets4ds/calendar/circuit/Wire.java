@@ -10,6 +10,9 @@ package com.pets4ds.calendar.circuit;
  * @author Jonas Nagy-Kuhlen <jonas.nagy-kuhlen@rwth-aachen.de>
  */
 public class Wire {
+    public final static Wire ZERO = new Wire(-1);
+    public final static Wire ONE = new Wire(-2);
+    
     private final int _id;
 
     public Wire(int id) {

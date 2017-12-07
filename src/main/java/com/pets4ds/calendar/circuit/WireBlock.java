@@ -22,13 +22,13 @@ public final class WireBlock {
         return shiftLeft(operand, -shift);
     }
     
-    public static Wire[] expand(Wire bit, Wire padBit, int numberOfBits) {
+    public static Wire[] expand(Wire bit, int numberOfBits) {
         Wire[] result = new Wire[numberOfBits];
         
         if(numberOfBits > 0) {
             result[0] = bit;
             for(int i = 1; i < numberOfBits; ++i)
-                result[i] = padBit;
+                result[i] = Wire.ZERO;
         }
         
         return result;

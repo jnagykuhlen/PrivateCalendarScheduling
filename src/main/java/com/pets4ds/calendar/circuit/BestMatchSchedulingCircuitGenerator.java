@@ -56,18 +56,15 @@ public class BestMatchSchedulingCircuitGenerator extends SchedulingCircuitGenera
         
         final int requiredBits = Integer.SIZE - Integer.numberOfLeadingZeros(countLimit);
         
-        final Wire zero = builder.xor(partyInputWires[0][0], partyInputWires[0][0]);
-        final Wire one = builder.not(zero);
-        
         Wire[][] counts = new Wire[getNumberOfSlots()][];
         for(int slotId = 0; slotId < getNumberOfSlots(); ++slotId)
-            counts[slotId] = weightMultiplication[0].apply(WireBlock.expand(partyInputWires[0][slotId], zero, requiredBits));
+            counts[slotId] = weightMultiplication[0].apply(WireBlock.expand(partyInputWires[0][slotId], requiredBits));
         
         for(int partyId = 1; partyId < getNumberOfParties(); ++partyId) {
             for(int slotId = 0; slotId < getNumberOfSlots(); ++slotId) {
                 counts[slotId] = addition.apply(
                     counts[slotId],
-                    weightMultiplication[partyId].apply(WireBlock.expand(partyInputWires[partyId][slotId], zero, requiredBits))
+                    weightMultiplication[partyId].apply(WireBlock.expand(partyInputWires[partyId][slotId], requiredBits))
                 );
             }
         }
@@ -75,7 +72,7 @@ public class BestMatchSchedulingCircuitGenerator extends SchedulingCircuitGenera
         Wire[] result = new Wire[getNumberOfSlots()];
         Wire[] maxCount = counts[getNumberOfSlots() - 1];
         
-        result[getNumberOfSlots() - 1] = one;
+        result[getNumberOfSlots() - 1] = Wire.ONE;
         for(int slotId = getNumberOfSlots() - 2; slotId >= 0; --slotId) {
             result[slotId] = comparison.greaterOrEqual(counts[slotId], maxCount);
             maxCount = multiplex.apply(maxCount, counts[slotId], result[slotId]);

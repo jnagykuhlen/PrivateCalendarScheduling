@@ -25,18 +25,54 @@ public abstract class CircuitBuilder {
     protected abstract void makeOutputWire(Wire wire, int partyId);
     
     public Wire and(Wire leftOperand, Wire rightOperand) {
+        if(!isValidWire(leftOperand) || !isValidWire(rightOperand))
+            throw new IllegalArgumentException("Invalid wire.");
+        
+        if(leftOperand == Wire.ZERO || rightOperand == Wire.ZERO)
+            return Wire.ZERO;
+        
+        if(leftOperand == Wire.ONE)
+            return rightOperand;
+        
+        if(rightOperand == Wire.ONE)
+            return leftOperand;
+        
         Wire result = requestWire();
         addANDGate(_nextGateId++, leftOperand, rightOperand, result);
         return result;
     }
     
     public Wire xor(Wire leftOperand, Wire rightOperand) {
+        if(!isValidWire(leftOperand) || !isValidWire(rightOperand))
+            throw new IllegalArgumentException("Invalid wire.");
+        
+        if(leftOperand == Wire.ZERO)
+            return rightOperand;
+        
+        if(rightOperand == Wire.ZERO)
+            return leftOperand;
+        
+        if(leftOperand == Wire.ONE)
+            return not(rightOperand);
+        
+        if(rightOperand == Wire.ONE)
+            return not(leftOperand);
+        
         Wire result = requestWire();
         addXORGate(_nextGateId++, leftOperand, rightOperand, result);
         return result;
     }
     
     public Wire not(Wire operand) {
+        if(!isValidWire(operand))
+            throw new IllegalArgumentException("Invalid wire.");
+        
+        if(operand == Wire.ZERO)
+            return Wire.ONE;
+        
+        if(operand == Wire.ONE)
+            return Wire.ZERO;
+        
         Wire result = requestWire();
         addNOTGate(_nextGateId++, operand, result);
         return result;
@@ -49,6 +85,12 @@ public abstract class CircuitBuilder {
     }
     
     public void output(Wire wire, int partyId) {
+        if(isConstantWire(wire))
+            throw new IllegalArgumentException("Constant wires are not allowed as output.");
+        
+        if(!isValidWire(wire))
+            throw new IllegalArgumentException("Invalid wire.");
+        
         makeOutputWire(wire, partyId);
     }
     
@@ -62,5 +104,13 @@ public abstract class CircuitBuilder {
     
     public int getNumberOfGates() {
         return _nextGateId;
+    }
+    
+    private boolean isConstantWire(Wire wire) {
+        return wire == Wire.ZERO || wire == Wire.ONE;
+    }
+    
+    private boolean isValidWire(Wire wire) {
+        return isConstantWire(wire) || (wire.getId() >= 0 && wire.getId() < _nextWireId);
     }
 }
