@@ -236,7 +236,7 @@ public class MainController implements Initializable, Closeable {
         _changeNameHyperlink.setVisited(false);
     }
     
-    private void handleSchedulingStarted(CommunicationSession session) {
+    private void handleSchedulingStarted(SchedulingSession session) {
         Logger.getLogger(getClass().getName()).log(
             Level.INFO,
             MessageFormat.format(
@@ -248,7 +248,7 @@ public class MainController implements Initializable, Closeable {
         _schedulingTabs.get(session).getController().handleSchedulingStarted();
     }
     
-    private void handleSchedulingFinished(CommunicationSession session, Optional<Integer> selectedSlotIndex) {
+    private void handleSchedulingFinished(SchedulingSession session, Optional<Integer> selectedSlotIndex) {
         String additionalMessage = "No matching slot was found.";
         if(selectedSlotIndex.isPresent())
             additionalMessage = MessageFormat.format("The time slot with index {0} was selected.", selectedSlotIndex.get());
@@ -265,7 +265,7 @@ public class MainController implements Initializable, Closeable {
         _schedulingTabs.get(session).getController().handleSchedulingFinished(selectedSlotIndex);
     }
     
-    private void handleSchedulingFailed(CommunicationSession session, SchedulingException exception) {
+    private void handleSchedulingFailed(SchedulingSession session, SchedulingException exception) {
         Logger.getLogger(getClass().getName()).log(
             Level.SEVERE,
             MessageFormat.format(
@@ -275,11 +275,15 @@ public class MainController implements Initializable, Closeable {
             exception
         );
         
+        leaveSession(session);
+        
         String title = "Scheduling Failed";
         String descriptionText = MessageFormat.format(
             "Scheduling computation failed for session \"{0}\". See log for further information.",
             session.getName()
         );
+        
+        Platform.runLater(() -> { disconnectSession(session, title, descriptionText); });
     }
     
     private TimeSlotAllocation[] handleGetLocalInput(CommunicationSession session) {
@@ -311,7 +315,7 @@ public class MainController implements Initializable, Closeable {
         _schedulingTabs.remove(session);
         
         Alert alert = new Alert(AlertType.INFORMATION);
-        alert.setTitle("Disconnected");
+        alert.setTitle(title);
         alert.setHeaderText(null);
         alert.setContentText(descriptionText);
         
