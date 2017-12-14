@@ -6,10 +6,6 @@
 package com.pets4ds.calendar.ui;
 
 import com.pets4ds.calendar.scheduling.TimeSlot;
-import java.text.MessageFormat;
-import java.time.format.DateTimeFormatter;
-import java.time.format.FormatStyle;
-import java.time.temporal.ChronoUnit;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.ListCell;
@@ -18,10 +14,10 @@ import javafx.scene.control.ListCell;
  *
  * @author Jonas Nagy-Kuhlen <jonas.nagy-kuhlen@rwth-aachen.de>
  */
-public class TimeSlotCell extends ListCell<TimeSlot> {
+public class SelectableTimeSlotCell extends ListCell<TimeSlot> {
     private final CheckBox _checkBox;
     
-    public TimeSlotCell() {
+    public SelectableTimeSlotCell() {
         _checkBox = new CheckBox();
     }
                     

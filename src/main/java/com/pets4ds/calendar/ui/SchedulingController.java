@@ -107,9 +107,9 @@ public class SchedulingController implements Initializable {
         _timeSlotListView.setCellFactory(new Callback<ListView<TimeSlot>, ListCell<TimeSlot>>() {
             @Override
             public ListCell<TimeSlot> call(ListView<TimeSlot> param) {
-                TimeSlotCell cell = new TimeSlotCell();
+                SelectableTimeSlotCell cell = new SelectableTimeSlotCell();
                 CheckBox checkBox = cell.getCheckBox();
-                checkBox.setOnAction((event) -> { handleTimeSlotSelected(cell.getIndex(), checkBox.isSelected()); } );
+                checkBox.setOnAction(event -> handleTimeSlotSelected(cell.getIndex(), checkBox.isSelected()));
                 return cell;
             }
         });

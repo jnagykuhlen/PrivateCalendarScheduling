@@ -16,7 +16,7 @@
     <children>
       <MenuBar layoutY="1.0" prefHeight="25.0" prefWidth="1024.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
         <menus>
-          <Menu mnemonicParsing="false" text="File">
+          <Menu mnemonicParsing="false" text="General">
             <items>
               <MenuItem mnemonicParsing="false" onAction="#handleInitiateScheduling" text="Initiate Scheduling" />
               <MenuItem mnemonicParsing="false" onAction="#handleShowLog" text="Show Log" />

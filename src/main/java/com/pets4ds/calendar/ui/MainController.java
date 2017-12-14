@@ -172,15 +172,9 @@ public class MainController implements Initializable, Closeable {
                 String sessionName = dialogController.getName();
                 String sessionDescriptionText = dialogController.getDescriptionText();
                 SchedulingSchemeIdentifier schedulingScheme = dialogController.getSchedulingScheme();
+                TimeSlot[] timeSlots = dialogController.getTimeSlots();
                 
-                LocalDateTime now = LocalDateTime.now();
-                TimeSlot[] testSlots = new TimeSlot[] {
-                    new TimeSlot(now.plusMinutes(60), now.plusMinutes(90)),
-                    new TimeSlot(now.plusMinutes(90), now.plusMinutes(120)),
-                    new TimeSlot(now.plusMinutes(120), now.plusMinutes(150))
-                };
-                
-                SchedulingSession session = _schedulingManager.createSchedulingSession(sessionName, sessionDescriptionText, schedulingScheme, testSlots);
+                SchedulingSession session = _schedulingManager.createSchedulingSession(sessionName, sessionDescriptionText, schedulingScheme, timeSlots);
                 showSchedulingSessionTab(session);
                 _schedulingManager.publishLocalPartyState(session);
                 
