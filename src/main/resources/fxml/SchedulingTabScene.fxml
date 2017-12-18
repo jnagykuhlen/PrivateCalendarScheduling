@@ -53,7 +53,7 @@
                      </font>
                   </Text>
                   <Text layoutX="280.0" layoutY="10.0" strokeType="OUTSIDE" strokeWidth="0.0" text="&#10;&#10;" />
-                  <Hyperlink fx:id="_exportHyperlink" onAction="#handleExportResult" text="Export iCalendar File" underline="true">
+                  <Hyperlink fx:id="_exportHyperlink" onAction="#handleExportResult" text="Export appointment" underline="true">
                      <font>
                         <Font size="20.0" />
                      </font>

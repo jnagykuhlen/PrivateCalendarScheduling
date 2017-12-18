@@ -78,8 +78,8 @@ public class ScapiSecureComputation implements SecureComputation {
     private void createCacheDirectory() throws SecureComputationException {
         try {
             Files.createDirectories(Paths.get(_cacheDirectory));
-        } catch(IOException ex) {
-            throw new SecureComputationException("Unable to create cache directory.", ex);
+        } catch(IOException exception) {
+            throw new SecureComputationException("Unable to create cache directory.", exception);
         }
     }
     

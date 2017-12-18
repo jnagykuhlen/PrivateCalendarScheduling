@@ -8,13 +8,22 @@ package com.pets4ds.calendar.ui;
 import com.pets4ds.calendar.network.CommunicationParty;
 import com.pets4ds.calendar.network.CommunicationSessionState;
 import com.pets4ds.calendar.network.PartyRole;
+import com.pets4ds.calendar.scheduling.CalendarCompatibility;
 import com.pets4ds.calendar.scheduling.SchedulingManager;
 import com.pets4ds.calendar.scheduling.SchedulingSession;
 import com.pets4ds.calendar.scheduling.TimeSlot;
 import com.pets4ds.calendar.scheduling.TimeSlotAllocation;
+import java.awt.Desktop;
+import java.io.File;
+import java.io.IOException;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.text.MessageFormat;
 import java.util.Optional;
 import java.util.ResourceBundle;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -40,9 +49,12 @@ import javafx.util.Callback;
  * @author Jonas Nagy-Kuhlen <jonas.nagy-kuhlen@rwth-aachen.de>
  */
 public class SchedulingController implements Initializable {
+    private final static String RESULT_DIRECTORY = "scheduling-results/";
+    
     private final SchedulingManager _schedulingManager;
     private final SchedulingSession _session;
     private final TimeSlotAllocation[] _localInputs;
+    private int _localPartyIndex;
     private Optional<Integer> _selectedSlotIndex;
     
     @FXML
@@ -88,6 +100,7 @@ public class SchedulingController implements Initializable {
         for(int i = 0; i < _localInputs.length; ++i)
             _localInputs[i] = TimeSlotAllocation.BUSY;
         
+        _localPartyIndex = -1;
         _selectedSlotIndex = null;
     }
     
@@ -128,6 +141,7 @@ public class SchedulingController implements Initializable {
     }
     
     public void handleSessionChanged(CommunicationSessionState sessionState) {
+        _localPartyIndex = sessionState.getLocalPartyIndex();
         Platform.runLater(() -> { updatePartyList(sessionState); });
     }
     
@@ -187,7 +201,20 @@ public class SchedulingController implements Initializable {
     
     @FXML
     private void handleExportResult(ActionEvent event) {
-        // TODO
+        if(_selectedSlotIndex.isPresent() && _selectedSlotIndex.get() != null) {
+            TimeSlot timeSlot = _session.getTimeSlots()[_selectedSlotIndex.get()];
+            try {
+                String filePath = RESULT_DIRECTORY + MessageFormat.format("{0}-{1}-{2}.ics", _session.getName(), _session.getUUID(), _localPartyIndex);
+                File file = new File(filePath);
+                Files.createDirectories(Paths.get(RESULT_DIRECTORY));
+                CalendarCompatibility.writeEventToFile(file, _session, timeSlot);
+                Desktop.getDesktop().open(file);
+            } catch(IOException exception) {
+                Logger.getLogger(getClass().getName()).log(Level.SEVERE, "Unable to export result. Cannot write iCalendar file.", exception);
+            }
+        } else {
+            Logger.getLogger(getClass().getName()).log(Level.SEVERE, "Unable to export result. Invalid computation output.");
+        }
         
         _exportHyperlink.setVisited(false);
     }
