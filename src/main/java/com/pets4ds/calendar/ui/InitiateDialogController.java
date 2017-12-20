@@ -9,7 +9,6 @@ import com.pets4ds.calendar.scheduling.SchedulingSchemeIdentifier;
 import com.pets4ds.calendar.scheduling.TimeSlot;
 import java.io.IOException;
 import java.net.URL;
-import java.time.LocalDateTime;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -44,6 +43,8 @@ import javafx.util.Callback;
  */
 public class InitiateDialogController implements Initializable {
     private boolean _isAccepted;
+    private Stage _timeSlotSelectionStage;
+    private TimeSlotSelectionController _timeSlotSelectionController;
     
     @FXML
     private TabPane _tabPane;
@@ -68,6 +69,8 @@ public class InitiateDialogController implements Initializable {
     
     public InitiateDialogController() {
         _isAccepted = false;
+        _timeSlotSelectionStage = null;
+        _timeSlotSelectionController = null;
     }
     
     @Override
@@ -124,25 +127,29 @@ public class InitiateDialogController implements Initializable {
     }
     
     private void handleAddTimeSlot(ActionEvent event) {
-        try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/TimeSlotSelectionScene.fxml"));
-            Parent dialogRoot = loader.load();
-            TimeSlotSelectionController controller = loader.getController();
+        if(_timeSlotSelectionStage == null || _timeSlotSelectionController == null) {
+            try {
+                FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/TimeSlotSelectionScene.fxml"));
+                Parent dialogRoot = loader.load();
+                _timeSlotSelectionController = loader.getController();
 
-            Stage stage = new Stage();
-            stage.setScene(new Scene(dialogRoot));
-            stage.setTitle("Select Time Slot");
-            stage.setResizable(false);
-            stage.initModality(Modality.APPLICATION_MODAL);
-            stage.initStyle(StageStyle.UTILITY);
-            stage.initOwner(_tabPane.getScene().getWindow());
-            stage.showAndWait();
-            
-            if(controller.isAccepted()) {
-                _timeSlotListView.getItems().add(controller.getTimeSlot());
+                _timeSlotSelectionStage = new Stage();
+                _timeSlotSelectionStage.setScene(new Scene(dialogRoot));
+                _timeSlotSelectionStage.setTitle("Select Time Slot");
+                _timeSlotSelectionStage.setResizable(false);
+                _timeSlotSelectionStage.initModality(Modality.APPLICATION_MODAL);
+                _timeSlotSelectionStage.initStyle(StageStyle.UTILITY);
+                _timeSlotSelectionStage.initOwner(_tabPane.getScene().getWindow());
+            } catch(IOException exception) {
+                Logger.getLogger(getClass().getName()).log(Level.SEVERE, "Unable to show time slot selection window.", exception);
             }
-        } catch(IOException exception) {
-            Logger.getLogger(getClass().getName()).log(Level.SEVERE, "Unable to show time slot selection window.", exception);
+        }
+        
+        if(_timeSlotSelectionStage != null && _timeSlotSelectionController != null) {
+            _timeSlotSelectionStage.showAndWait();
+
+            if(_timeSlotSelectionController.isAccepted())
+                _timeSlotListView.getItems().add(_timeSlotSelectionController.getTimeSlot());
         }
     }
     

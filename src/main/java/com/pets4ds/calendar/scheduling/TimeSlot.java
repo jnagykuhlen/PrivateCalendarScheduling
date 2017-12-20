@@ -36,6 +36,10 @@ public class TimeSlot implements Serializable {
         _end = end;
     }
     
+    public boolean overlaps(TimeSlot other) {
+        return getStartDate().isBefore(other.getEndDate()) && other.getStartDate().isBefore(getEndDate());
+    }
+    
     public LocalDateTime getStartDate() {
         return _start;
     }

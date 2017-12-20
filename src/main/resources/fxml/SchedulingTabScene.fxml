@@ -15,7 +15,8 @@
 <AnchorPane id="AnchorPane" prefHeight="600.0" prefWidth="800.0" xmlns="http://javafx.com/javafx/8.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.pets4ds.calendar.ui.SchedulingController">
    <children>
       <Label fx:id="_descriptionLabel" alignment="TOP_LEFT" layoutX="14.0" layoutY="14.0" prefHeight="55.0" prefWidth="572.0" text="&lt;Description&gt;" wrapText="true" AnchorPane.leftAnchor="14.0" AnchorPane.rightAnchor="14.0" AnchorPane.topAnchor="14.0" />
-      <Button fx:id="_resendInviteButton" disable="true" layoutX="436.0" layoutY="361.0" mnemonicParsing="false" onAction="#handleResendInvite" prefHeight="25.0" prefWidth="150.0" text="Resend Invite" AnchorPane.bottomAnchor="13.666666666666686" AnchorPane.rightAnchor="14.0" />
+      <Button fx:id="_resendInviteButton" disable="true" layoutX="436.0" layoutY="361.0" mnemonicParsing="false" onAction="#handleResendInvite" prefHeight="25.0" prefWidth="150.0" text="Resend Invite" AnchorPane.bottomAnchor="14.0" AnchorPane.rightAnchor="14.0" />
+      <Button layoutX="476.0" layoutY="561.0" mnemonicParsing="false" onAction="#handleImportCalendar" prefWidth="150.0" text="Import Calendar" AnchorPane.bottomAnchor="14.0" AnchorPane.rightAnchor="174.0" />
       <CheckBox fx:id="_readyCheckBox" layoutX="14.0" layoutY="365.0" mnemonicParsing="false" onAction="#handleReady" text="Ready" AnchorPane.bottomAnchor="17.666666666666668" AnchorPane.leftAnchor="14.0" />
       <SplitPane dividerPositions="0.3" layoutX="14.0" layoutY="78.0" prefHeight="272.0" prefWidth="572.0" AnchorPane.bottomAnchor="50.0" AnchorPane.leftAnchor="14.0" AnchorPane.rightAnchor="14.0" AnchorPane.topAnchor="78.0">
         <items>

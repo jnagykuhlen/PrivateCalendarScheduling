@@ -41,6 +41,7 @@ import javafx.scene.layout.Border;
 import javafx.scene.layout.Pane;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextFlow;
+import javafx.stage.FileChooser;
 import javafx.util.Callback;
 
 /**
@@ -53,7 +54,7 @@ public class SchedulingController implements Initializable {
     
     private final SchedulingManager _schedulingManager;
     private final SchedulingSession _session;
-    private final TimeSlotAllocation[] _localInputs;
+    private final TimeSlotAllocation[] _localTimeSlotAllocations;
     private int _localPartyIndex;
     private Optional<Integer> _selectedSlotIndex;
     
@@ -96,9 +97,9 @@ public class SchedulingController implements Initializable {
     public SchedulingController(SchedulingManager schedulingManager, SchedulingSession session) {
         _schedulingManager = schedulingManager;
         _session = session;
-        _localInputs = new TimeSlotAllocation[session.getTimeSlots().length];
-        for(int i = 0; i < _localInputs.length; ++i)
-            _localInputs[i] = TimeSlotAllocation.BUSY;
+        _localTimeSlotAllocations = new TimeSlotAllocation[session.getTimeSlots().length];
+        for(int i = 0; i < _localTimeSlotAllocations.length; ++i)
+            _localTimeSlotAllocations[i] = TimeSlotAllocation.BUSY;
         
         _localPartyIndex = -1;
         _selectedSlotIndex = null;
@@ -120,7 +121,7 @@ public class SchedulingController implements Initializable {
         _timeSlotListView.setCellFactory(new Callback<ListView<TimeSlot>, ListCell<TimeSlot>>() {
             @Override
             public ListCell<TimeSlot> call(ListView<TimeSlot> param) {
-                SelectableTimeSlotCell cell = new SelectableTimeSlotCell();
+                SelectableTimeSlotCell cell = new SelectableTimeSlotCell(_localTimeSlotAllocations);
                 CheckBox checkBox = cell.getCheckBox();
                 checkBox.setOnAction(event -> handleTimeSlotSelected(cell.getIndex(), checkBox.isSelected()));
                 return cell;
@@ -132,9 +133,9 @@ public class SchedulingController implements Initializable {
     }
     
     private void handleTimeSlotSelected(int slotIndex, boolean selected) {
-        _localInputs[slotIndex] = TimeSlotAllocation.BUSY;
+        _localTimeSlotAllocations[slotIndex] = TimeSlotAllocation.BUSY;
         if(selected)
-            _localInputs[slotIndex] = TimeSlotAllocation.FREE;
+            _localTimeSlotAllocations[slotIndex] = TimeSlotAllocation.FREE;
         
         _timeSlotListView.getItems().clear();
         _timeSlotListView.getItems().addAll((Object[])_session.getTimeSlots());
@@ -155,7 +156,7 @@ public class SchedulingController implements Initializable {
     }
     
     public TimeSlotAllocation[] getLocalInputs() {
-        return _localInputs;
+        return _localTimeSlotAllocations;
     }
     
     private void updatePartyList(CommunicationSessionState sessionState) {
@@ -197,6 +198,31 @@ public class SchedulingController implements Initializable {
     @FXML
     private void handleResendInvite(ActionEvent event) {
         _schedulingManager.resendInvite(_session);
+    }
+    
+    @FXML
+    private void handleImportCalendar(ActionEvent event) {
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Import iCalendar File");
+        fileChooser.getExtensionFilters().addAll(
+            new FileChooser.ExtensionFilter("iCalendar Files", "*.ics", "*.ical", "*.ifb", "*.icalendar"),
+            new FileChooser.ExtensionFilter("All Files", "*.*")
+        );
+        
+        File file = fileChooser.showOpenDialog(_overlayPane.getScene().getWindow());
+        if(file != null) {
+            try {
+                TimeSlotAllocation[] matches = CalendarCompatibility.matchCalendar(file, _session.getTimeSlots());
+                System.arraycopy(matches, 0, _localTimeSlotAllocations, 0, _localTimeSlotAllocations.length);
+                
+                _timeSlotListView.getItems().clear();
+                _timeSlotListView.getItems().addAll((Object[])_session.getTimeSlots());
+                
+                Logger.getLogger(getClass().getName()).log(Level.INFO, "Successfully imported calendar.");
+            } catch(IOException exception) {
+                Logger.getLogger(getClass().getName()).log(Level.SEVERE, "Unable to import calendar.", exception);
+            }
+        }
     }
     
     @FXML
