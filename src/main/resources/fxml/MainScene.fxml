@@ -28,6 +28,11 @@
               <MenuItem mnemonicParsing="false" text="About" />
             </items>
           </Menu>
+            <Menu mnemonicParsing="false" text="Testing">
+              <items>
+                <MenuItem mnemonicParsing="false" onAction="#handleInitiateSample" text="Generate Sample Scheduling" />
+              </items>
+            </Menu>
         </menus>
       </MenuBar>
       <TabPane fx:id="_schedulingTabPane" layoutY="26.0" prefHeight="716.0" prefWidth="1024.0" AnchorPane.bottomAnchor="26.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="26.0" />

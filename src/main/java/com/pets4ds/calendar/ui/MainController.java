@@ -194,6 +194,41 @@ public class MainController implements Initializable, Closeable {
     }
     
     @FXML
+    private void handleInitiateSample(ActionEvent event) {
+        String sessionName = "Sample Appointment";
+        String sessionDescriptionText = "This is an auto-generated sample appointment for testing, which can be used to skip most of the necessary interaction with the UI.";
+        SchedulingSchemeIdentifier schedulingScheme = SchedulingSchemeIdentifier.BEST_MATCH;
+        TimeSlot[] timeSlots = {
+            new TimeSlot(LocalDateTime.of(2017, 12, 13, 13, 00), LocalDateTime.of(2017, 12, 13, 13, 30)),
+            new TimeSlot(LocalDateTime.of(2017, 12, 13, 13, 30), LocalDateTime.of(2017, 12, 13, 14, 00)),
+            new TimeSlot(LocalDateTime.of(2017, 12, 13, 14, 00), LocalDateTime.of(2017, 12, 13, 14, 30)),
+            new TimeSlot(LocalDateTime.of(2017, 12, 13, 14, 30), LocalDateTime.of(2017, 12, 13, 15, 00)),
+            new TimeSlot(LocalDateTime.of(2018, 01, 17, 13, 00), LocalDateTime.of(2018, 01, 17, 15, 00)),
+            new TimeSlot(LocalDateTime.of(2018, 01, 17, 15, 00), LocalDateTime.of(2018, 01, 17, 17, 00)),
+            new TimeSlot(LocalDateTime.of(2018, 01, 18, 13, 00), LocalDateTime.of(2018, 01, 18, 15, 00)),
+            new TimeSlot(LocalDateTime.of(2018, 01, 18, 15, 00), LocalDateTime.of(2018, 01, 18, 17, 00))
+        };
+        
+        try {
+            SchedulingSession session = _schedulingManager.createSchedulingSession(sessionName, sessionDescriptionText, schedulingScheme, timeSlots);
+            showSchedulingSessionTab(session);
+            _schedulingManager.publishLocalPartyState(session);
+
+            Logger.getLogger(getClass().getName()).log(
+                Level.INFO,
+                MessageFormat.format(
+                    "Successfully initiated scheduling session \"{0}\". Participating as \"{1}\" at {2}.",
+                    sessionName,
+                    _schedulingManager.getLocalName(),
+                    _schedulingManager.getLocalSchedulingAddress(session)
+                )
+            );
+        } catch(IOException exception) {
+            Logger.getLogger(getClass().getName()).log(Level.SEVERE, "Unable to initiate sample scheduling.", exception);
+        }
+    }
+    
+    @FXML
     private void handleShowLog(ActionEvent event) {
         _loggingStage.show();
     }
