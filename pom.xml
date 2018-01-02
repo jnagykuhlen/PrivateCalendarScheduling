@@ -11,7 +11,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <mainClass>com.pets4ds.calendar.ui.MainApp</mainClass>
+        <mainClass>com.pets4ds.calendar.benchmarking.BenchmarkingApp</mainClass>
     </properties>
     
     <organization>
