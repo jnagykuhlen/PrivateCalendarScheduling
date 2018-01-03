@@ -14,6 +14,9 @@ import java.io.Console;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.text.MessageFormat;
+import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.util.Date;
 
 /**
  *
@@ -24,6 +27,7 @@ public class BenchmarkingApp {
     private static final String CIRCUIT_FILENAME = "Circuit.txt";
     private static final String COMMUNICATION_FILENAME = "Parties.txt";
     private static final String INPUT_FILENAME = "Input{0}.txt";
+    private static final String RESULT_FILENAME = "Results_{0}_{1}.txt";
     
     public static void main(String[] args) {
         final boolean isCoordinator = args.length == 0;
@@ -36,6 +40,7 @@ public class BenchmarkingApp {
                 { 1, 1, 1, 1, 0 }
             };
         
+            final SchedulingSchemeIdentifier[] schedulingSchemes = { SchedulingSchemeIdentifier.FIRST_MATCH, SchedulingSchemeIdentifier.BEST_MATCH };
             final int[] slotNumbers = { 10, 100 }; //{ 10, 100, 1000 };
             final int[] partyNumbers = { 2, 4 }; //{ 2, 4, 6, 8, 10, 12, 14, 16, 18, 20 };
             final int maxNumberOfParties = 20;
@@ -46,11 +51,34 @@ public class BenchmarkingApp {
             
             System.out.println();
             
-            for(SchedulingSchemeIdentifier schedulingScheme : SchedulingSchemeIdentifier.values()) {
-                for(int numberOfParties : partyNumbers) {
-                    for(int numberOfSlots : slotNumbers) {
-                        benchmark(schedulingScheme, numberOfParties, numberOfSlots, inputs);
+            final String timestamp = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
+            
+            for(SchedulingSchemeIdentifier schedulingScheme : schedulingSchemes) {
+                try(TableWriter writer = new TableWriter(MessageFormat.format(RESULT_FILENAME, schedulingScheme.name(), timestamp), slotNumbers.length + 1, 7)) {
+                    String[] headerCells = new String[slotNumbers.length + 1];
+                    headerCells[0] = "n";
+                    for(int i = 0; i < slotNumbers.length; ++i)
+                        headerCells[i + 1] = "m = " + slotNumbers[i];
+                    
+                    writer.writeCells((Object[])headerCells);
+                    writer.writeSeparator();
+                    writer.flush();
+                    
+                    for(int numberOfParties : partyNumbers) {
+                        String[] cells = new String[slotNumbers.length + 1];
+                        cells[0] = Integer.toString(numberOfParties);
+                        
+                        for(int slotId = 0; slotId < slotNumbers.length; ++slotId) {
+                            long result = benchmark(schedulingScheme, numberOfParties, slotNumbers[slotId], inputs);
+                            cells[slotId + 1] = Long.toString(result);
+                        }
+                        
+                        writer.writeCells((Object[])cells);
+                        writer.flush();
                     }
+                } catch(IOException exception) {
+                    System.out.println("Failed to write results file.");
+                    exception.printStackTrace();
                 }
             }
             
@@ -65,11 +93,14 @@ public class BenchmarkingApp {
                 int partyId = Integer.parseInt(args[0]);
                 int inputId = Integer.parseInt(args[1]);
                 runProtocol(partyId, inputId);
+                System.out.println("EXIT");
             }
         }
     }
     
-    private static void benchmark(SchedulingSchemeIdentifier schedulingScheme, int numberOfParties, int numberOfSlots, byte[][] inputs) {
+    private static long benchmark(SchedulingSchemeIdentifier schedulingScheme, int numberOfParties, int numberOfSlots, byte[][] inputs) {
+        long maxProtocolTime = 0;
+        
         System.out.println(MessageFormat.format("--- Measuring for n = {0}, m = {1}, {2} ---", numberOfParties, numberOfSlots, schedulingScheme.getFullName()));
         
         System.out.println("  Writing input files...");
@@ -82,22 +113,30 @@ public class BenchmarkingApp {
         
         System.out.println("  Starting parties...");
         try {
-            long startTime = System.nanoTime();
+            PartyWorker[] partyWorkers = new PartyWorker[numberOfParties];
+            Thread[] partyThreads = new Thread[numberOfParties];
             
-            Process[] partyProcesses = new Process[numberOfParties];
-            for(int i = 0; i < numberOfParties; ++i)
-                partyProcesses[i] = Runtime.getRuntime().exec(MessageFormat.format("java -jar \"{0}\" {1} {2}", JAR_NAME, i, i % inputs.length));
+            for(int i = 0; i < numberOfParties; ++i) {
+                partyWorkers[i] = new PartyWorker(MessageFormat.format("java -jar \"{0}\" {1} {2}", JAR_NAME, i, i % inputs.length));
+                partyThreads[i] = new Thread(partyWorkers[i]);
+                partyThreads[i].start();
+            }
             
             System.out.println("  Parties started successfully.");
             System.out.println("  Waiting for termination...");
             
-            for(int i = 0; i < numberOfParties; ++i)
-                partyProcesses[i].waitFor();
-        
-            long endTime = System.nanoTime();
-            long totalTime =(endTime - startTime) / 1000000;
+            for(int i = 0; i < numberOfParties; ++i) {
+                partyThreads[i].join();
+                if(partyWorkers[i].getException() != null)
+                    throw partyWorkers[i].getException();
+                
+                long protocolTime = partyWorkers[i].getProtocolTime();
+                if(protocolTime > maxProtocolTime)
+                    maxProtocolTime = protocolTime;
+            }
             
-            System.out.println("  Parties terminated. Execution took " + totalTime + " ms.");
+            System.out.println("  Parties terminated.");
+            System.out.println("  Protocol took " + maxProtocolTime + " ms.");
         } catch(Exception exception) {
             System.out.println("  Failed to run parties.");
             exception.printStackTrace();
@@ -105,6 +144,8 @@ public class BenchmarkingApp {
         
         System.out.println("--- Measuring finished ---");
         System.out.println();
+        
+        return maxProtocolTime;
     }
     
     private static void writeCircuitFile(SchedulingSchemeIdentifier schedulingScheme, int numberOfParties, int numberOfSlots) {
