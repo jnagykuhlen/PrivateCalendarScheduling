@@ -15,7 +15,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
-import java.time.LocalDateTime;
 import java.util.Date;
 
 /**
@@ -41,8 +40,8 @@ public class BenchmarkingApp {
             };
         
             final SchedulingSchemeIdentifier[] schedulingSchemes = { SchedulingSchemeIdentifier.FIRST_MATCH, SchedulingSchemeIdentifier.BEST_MATCH };
-            final int[] slotNumbers = { 10, 100 }; //{ 10, 100, 1000 };
-            final int[] partyNumbers = { 2, 4 }; //{ 2, 4, 6, 8, 10, 12, 14, 16, 18, 20 };
+            final int[] slotNumbers = { 10, 100, 1000 };
+            final int[] partyNumbers = { 2, 4, 6, 8, 10, 12, 14, 16, 18, 20 };
             final int maxNumberOfParties = 20;
             
             System.out.println("Writing communication file...");
