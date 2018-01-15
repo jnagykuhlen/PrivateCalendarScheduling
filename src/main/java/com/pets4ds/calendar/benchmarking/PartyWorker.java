@@ -6,8 +6,9 @@
 package com.pets4ds.calendar.benchmarking;
 
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.text.MessageFormat;
 
 /**
  *
@@ -15,12 +16,14 @@ import java.io.InputStreamReader;
  */
 public class PartyWorker implements Runnable {
     private final String _command;
+    private final int _id;
     private Exception _exception;
     private long _setupTime;
     private long _protocolTime;
     
-    public PartyWorker(String command) {
+    public PartyWorker(String command, int id) {
         _command = command;
+        _id = id;
         _exception = null;
         _setupTime = 0;
         _protocolTime = 0;
@@ -29,27 +32,26 @@ public class PartyWorker implements Runnable {
     @Override
     public void run() {
         try {
-            long startTime = System.nanoTime();
+            try(PrintWriter writer = new PrintWriter(MessageFormat.format("log-{0}.txt", _id))) {
+                long startTime = System.nanoTime();
+                Process process = Runtime.getRuntime().exec(_command);
             
-            Process process = Runtime.getRuntime().exec(_command);
-            
-            /*
-            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            String line;
-            while ((line = reader.readLine()) != null) {
-                // System.out.println("  >>" + line);
-                if(line.equals("----------end communication--------------")) {
-                    long currentTime = System.nanoTime();
-                    _setupTime = (currentTime - startTime) / 1000000;
-                    startTime = currentTime;
+                BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    writer.println(line);
+                    /*if(line.equals("----------end communication--------------")) {
+                        long currentTime = System.nanoTime();
+                        _setupTime = (currentTime - startTime) / 1000000;
+                        startTime = currentTime;
+                    }*/
                 }
+            
+                process.waitFor();
+
+                long endTime = System.nanoTime();
+                _protocolTime = (endTime - startTime) / 1000000;
             }
-            */
-            
-            process.waitFor();
-            
-            long endTime = System.nanoTime();
-            _protocolTime = (endTime - startTime) / 1000000;
         } catch(Exception exception) {
             _exception = exception;
         }

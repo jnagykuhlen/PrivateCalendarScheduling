@@ -27,6 +27,12 @@ public class BenchmarkingApp {
     private static final String COMMUNICATION_FILENAME = "Parties.txt";
     private static final String INPUT_FILENAME = "Input{0}.txt";
     private static final String RESULT_FILENAME = "Results_{0}_{1}.txt";
+    private static final int MIN_PORT = 9000;
+    private static final int MAX_PORT = 62000;
+    private static final int PORT_STEP = 100;
+    private static final int SLEEP_TIME = 100;
+    
+    private static int _currentPort = MIN_PORT;
     
     public static void main(String[] args) {
         final boolean isCoordinator = args.length == 0;
@@ -42,13 +48,6 @@ public class BenchmarkingApp {
             final SchedulingSchemeIdentifier[] schedulingSchemes = { SchedulingSchemeIdentifier.FIRST_MATCH, SchedulingSchemeIdentifier.BEST_MATCH };
             final int[] slotNumbers = { 10, 100, 1000 };
             final int[] partyNumbers = { 2, 4, 6, 8, 10, 12, 14, 16, 18, 20 };
-            final int maxNumberOfParties = 20;
-            
-            System.out.println("Writing communication file...");
-            writeCommunicationFile(maxNumberOfParties);
-            System.out.println("Communication file written successfully.");
-            
-            System.out.println();
             
             final String timestamp = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
             
@@ -70,6 +69,7 @@ public class BenchmarkingApp {
                         for(int slotId = 0; slotId < slotNumbers.length; ++slotId) {
                             long result = benchmark(schedulingScheme, numberOfParties, slotNumbers[slotId], inputs);
                             cells[slotId + 1] = Long.toString(result);
+                            sleep();
                         }
                         
                         writer.writeCells((Object[])cells);
@@ -102,6 +102,10 @@ public class BenchmarkingApp {
         
         System.out.println(MessageFormat.format("--- Measuring for n = {0}, m = {1}, {2} ---", numberOfParties, numberOfSlots, schedulingScheme.getFullName()));
         
+        System.out.println("Writing communication file...");
+        writeCommunicationFile(numberOfParties);
+        System.out.println("Communication file written successfully.");
+        
         System.out.println("  Writing input files...");
         writeInputFiles(inputs, numberOfSlots);
         System.out.println("  Input files written successfully.");
@@ -116,7 +120,7 @@ public class BenchmarkingApp {
             Thread[] partyThreads = new Thread[numberOfParties];
             
             for(int i = 0; i < numberOfParties; ++i) {
-                partyWorkers[i] = new PartyWorker(MessageFormat.format("java -jar \"{0}\" {1} {2}", JAR_NAME, i, i % inputs.length));
+                partyWorkers[i] = new PartyWorker(MessageFormat.format("java -jar \"{0}\" {1} {2}", JAR_NAME, i, i % inputs.length), i);
                 partyThreads[i] = new Thread(partyWorkers[i]);
                 partyThreads[i].start();
             }
@@ -185,12 +189,11 @@ public class BenchmarkingApp {
                 writer.write("party_" + partyId + "_ip = 127.0.0.1\n");
             }
             
-            final int startPort = 8000;
-            final int portsPerParty = 100;
-            
             for(int partyId = 0; partyId < numberOfParties; ++partyId) {
-                int port = startPort + partyId * portsPerParty;
-                writer.write("party_" + partyId + "_port = " + port + "\n");
+                writer.write("party_" + partyId + "_port = " + _currentPort + "\n");
+                _currentPort += PORT_STEP;
+                if(_currentPort > MAX_PORT)
+                    _currentPort = MIN_PORT;
             }
             
             System.out.println("Communication file generation successful.");
@@ -213,5 +216,14 @@ public class BenchmarkingApp {
     
     private static String getInputFilename(int inputId) {
         return MessageFormat.format(INPUT_FILENAME, inputId);
+    }
+    
+    private static void sleep() {
+        try {
+            Thread.sleep(SLEEP_TIME);
+        } catch(InterruptedException exception) {
+            System.out.println("Cannot sleep.");
+            exception.printStackTrace();
+        }
     }
 }
