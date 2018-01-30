@@ -23,13 +23,13 @@ public class FilterFirst extends UnaryBitwiseOperator {
             return operand;
         
         Wire[] result = new Wire[operand.length];
-        Wire condition = builder.not(operand[0]);
+        Wire condition = Wire.ONE;
         
         result[0] = operand[0];
         
         for(int i = 1; i < operand.length; ++i) {
+            condition = builder.and(condition, builder.not(operand[i - 1]));
             result[i] = builder.and(operand[i], condition);
-            condition = builder.and(condition, builder.not(operand[i]));
         }
         
         return result;
