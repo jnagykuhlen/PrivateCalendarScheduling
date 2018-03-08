@@ -6,6 +6,7 @@
 package com.pets4ds.calendar.benchmarking;
 
 import java.io.Closeable;
+import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 
@@ -19,7 +20,9 @@ public class TableWriter implements Closeable {
     private final String _cellFormat;
     
     public TableWriter(String filePath, int numberOfColumns, int cellWidth) throws IOException {
-        _writer = new PrintWriter(filePath, "UTF-8");
+        File file = new File(filePath);
+        file.getParentFile().mkdirs();
+        _writer = new PrintWriter(file, "UTF-8");
         _numberOfColumns = numberOfColumns;
         _cellFormat = "%" + cellWidth + "s";
     }

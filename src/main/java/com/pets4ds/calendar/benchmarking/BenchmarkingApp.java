@@ -26,7 +26,7 @@ public class BenchmarkingApp {
     private static final String CIRCUIT_FILENAME = "Circuit.txt";
     private static final String COMMUNICATION_FILENAME = "Parties.txt";
     private static final String INPUT_FILENAME = "Input{0}.txt";
-    private static final String RESULT_FILENAME = "Results_{0}_{1}.txt";
+    private static final String RESULT_FILENAME = "benchmark-results/Results_{0}_{1}.txt";
     private static final int MIN_PORT = 9000;
     private static final int MAX_PORT = 62000;
     private static final int PORT_STEP = 100;
@@ -35,43 +35,41 @@ public class BenchmarkingApp {
     private static int _currentPort = MIN_PORT;
     
     public static void main(String[] args) {
-        final boolean isCoordinator = args.length == 0;
-        
-        if(isCoordinator) {
-            final byte[][] inputs = new byte[][]{
-                { 0, 1, 1, 1, 1 },
-                { 1, 1, 0, 1, 1 },
-                { 1, 1, 0, 1, 0 },
-                { 1, 1, 1, 1, 0 }
-            };
-        
-            final SchedulingSchemeIdentifier[] schedulingSchemes = { SchedulingSchemeIdentifier.FIRST_MATCH, SchedulingSchemeIdentifier.BEST_MATCH };
-            final int[] slotNumbers = { 10, 100, 1000 };
-            final int[] partyNumbers = { 2, 4, 6, 8, 10, 12, 14, 16, 18, 20 };
-            
-            final String timestamp = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
-            
-            for(SchedulingSchemeIdentifier schedulingScheme : schedulingSchemes) {
+        try {
+            if(args.length == 3) {
+                final byte[][] inputs = new byte[][]{
+                    { 0, 1, 1, 1, 1 },
+                    { 1, 1, 0, 1, 1 },
+                    { 1, 1, 0, 1, 0 },
+                    { 1, 1, 1, 1, 0 }
+                };
+
+                final int[] partyNumbers = parseNumberList(args[0]); // { 2, 4, 6, 8, 10, 12, 14, 16, 18, 20 };
+                final int[] slotNumbers = parseNumberList(args[1]); // { 10, 100, 1000 };
+                final SchedulingSchemeIdentifier schedulingScheme = SchedulingSchemeIdentifier.valueOf(args[2]); // { SchedulingSchemeIdentifier.FIRST_MATCH, SchedulingSchemeIdentifier.BEST_MATCH };
+
+                final String timestamp = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
+
                 try(TableWriter writer = new TableWriter(MessageFormat.format(RESULT_FILENAME, schedulingScheme.name(), timestamp), slotNumbers.length + 1, 7)) {
                     String[] headerCells = new String[slotNumbers.length + 1];
                     headerCells[0] = "n";
                     for(int i = 0; i < slotNumbers.length; ++i)
                         headerCells[i + 1] = "m = " + slotNumbers[i];
-                    
+
                     writer.writeCells((Object[])headerCells);
                     writer.writeSeparator();
                     writer.flush();
-                    
+
                     for(int numberOfParties : partyNumbers) {
                         String[] cells = new String[slotNumbers.length + 1];
                         cells[0] = Integer.toString(numberOfParties);
-                        
+
                         for(int slotId = 0; slotId < slotNumbers.length; ++slotId) {
                             long result = benchmark(schedulingScheme, numberOfParties, slotNumbers[slotId], inputs);
                             cells[slotId + 1] = Long.toString(result);
                             sleep();
                         }
-                        
+
                         writer.writeCells((Object[])cells);
                         writer.flush();
                     }
@@ -79,21 +77,25 @@ public class BenchmarkingApp {
                     System.out.println("Failed to write results file.");
                     exception.printStackTrace();
                 }
-            }
-            
-            Console console = System.console();
-            if(console != null) {
-                System.out.println();
-                System.out.println("Press Enter to exit.");
-                console.readLine();
-            }
-        } else {
-            if(args.length == 2) {
+
+                Console console = System.console();
+                if(console != null) {
+                    System.out.println();
+                    System.out.println("Press Enter to exit.");
+                    console.readLine();
+                }
+            } else if(args.length == 2) {
                 int partyId = Integer.parseInt(args[0]);
                 int inputId = Integer.parseInt(args[1]);
                 runProtocol(partyId, inputId);
                 System.out.println("EXIT");
+            } else {
+                System.out.println("Invalid number of arguments.");
+                System.out.println("Usage: <List of values for n> <List of values for m> <Scheduling scheme>");
             }
+        } catch(Exception exception) {
+            System.out.println("An error occurred.");
+            exception.printStackTrace();
         }
     }
     
@@ -225,5 +227,19 @@ public class BenchmarkingApp {
             System.out.println("Cannot sleep.");
             exception.printStackTrace();
         }
+    }
+    
+    private static int[] parseNumberList(String text) {
+        text = text.trim();
+        if(text.startsWith("{") && text.endsWith("}")) {
+            String[] parts = text.substring(1, text.length() - 1).split(",");
+            int[] numbers = new int[parts.length];
+            for(int i = 0; i < parts.length; ++i)
+                numbers[i] = Integer.parseInt(parts[i].trim());
+            
+            return numbers;
+        }
+        
+        return new int[] { Integer.parseInt(text) };
     }
 }
