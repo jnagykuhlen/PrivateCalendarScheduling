@@ -27,6 +27,8 @@ public class BenchmarkingApp {
     private static final String COMMUNICATION_FILENAME = "Parties.txt";
     private static final String INPUT_FILENAME = "Input{0}.txt";
     private static final String RESULT_FILENAME = "benchmark-results/Results_{0}_{1}.txt";
+    private static final String CIRCUITDEPTHS_FILENAME = "benchmark-results/CircuitANDdepths_{0}_{1}.txt";
+    private static final String CIRCUITGATES_FILENAME = "benchmark-results/CircuitANDgates_{0}_{1}.txt";
     private static final int MIN_PORT = 9000;
     private static final int MAX_PORT = 62000;
     private static final int PORT_STEP = 100;
@@ -36,48 +38,19 @@ public class BenchmarkingApp {
     
     public static void main(String[] args) {
         try {
-            if(args.length == 3) {
-                final byte[][] inputs = new byte[][]{
-                    { 0, 1, 1, 1, 1 },
-                    { 1, 1, 0, 1, 1 },
-                    { 1, 1, 0, 1, 0 },
-                    { 1, 1, 1, 1, 0 }
-                };
-
+            if(args.length == 4 && args[0].equals("circuitstats")) {
+                
+            } else if(args.length == 3 || args.length == 4) {
                 final int[] partyNumbers = parseNumberList(args[0]); // { 2, 4, 6, 8, 10, 12, 14, 16, 18, 20 };
                 final int[] slotNumbers = parseNumberList(args[1]); // { 10, 100, 1000 };
                 final SchedulingSchemeIdentifier schedulingScheme = SchedulingSchemeIdentifier.valueOf(args[2]); // { SchedulingSchemeIdentifier.FIRST_MATCH, SchedulingSchemeIdentifier.BEST_MATCH };
-
-                final String timestamp = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
-
-                try(TableWriter writer = new TableWriter(MessageFormat.format(RESULT_FILENAME, schedulingScheme.name(), timestamp), slotNumbers.length + 1, 7)) {
-                    String[] headerCells = new String[slotNumbers.length + 1];
-                    headerCells[0] = "n";
-                    for(int i = 0; i < slotNumbers.length; ++i)
-                        headerCells[i + 1] = "m = " + slotNumbers[i];
-
-                    writer.writeCells((Object[])headerCells);
-                    writer.writeSeparator();
-                    writer.flush();
-
-                    for(int numberOfParties : partyNumbers) {
-                        String[] cells = new String[slotNumbers.length + 1];
-                        cells[0] = Integer.toString(numberOfParties);
-
-                        for(int slotId = 0; slotId < slotNumbers.length; ++slotId) {
-                            long result = benchmark(schedulingScheme, numberOfParties, slotNumbers[slotId], inputs);
-                            cells[slotId + 1] = Long.toString(result);
-                            sleep();
-                        }
-
-                        writer.writeCells((Object[])cells);
-                        writer.flush();
-                    }
-                } catch(IOException exception) {
-                    System.out.println("Failed to write results file.");
-                    exception.printStackTrace();
+                
+                if(args.length == 4 && args[3].equals("circuitstats")) {
+                    measureCircuitStatistics(partyNumbers, slotNumbers, schedulingScheme);
+                } else {
+                    measureTimings(partyNumbers, slotNumbers, schedulingScheme);
                 }
-
+                
                 Console console = System.console();
                 if(console != null) {
                     System.out.println();
@@ -95,6 +68,88 @@ public class BenchmarkingApp {
             }
         } catch(Exception exception) {
             System.out.println("An error occurred.");
+            exception.printStackTrace();
+        }
+    }
+    
+    private static void measureCircuitStatistics(int[] partyNumbers, int[] slotNumbers, SchedulingSchemeIdentifier schedulingScheme) {
+        final String timestamp = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
+
+        try(TableWriter depthWriter = new TableWriter(MessageFormat.format(CIRCUITDEPTHS_FILENAME, schedulingScheme.name(), timestamp), slotNumbers.length + 1, 8);
+            TableWriter gatesWriter = new TableWriter(MessageFormat.format(CIRCUITGATES_FILENAME, schedulingScheme.name(), timestamp), slotNumbers.length + 1, 8)) {
+            
+            String[] headerCells = new String[slotNumbers.length + 1];
+            headerCells[0] = "n";
+            for(int i = 0; i < slotNumbers.length; ++i)
+                headerCells[i + 1] = "m = " + slotNumbers[i];
+
+            depthWriter.writeCells((Object[])headerCells);
+            depthWriter.writeSeparator();
+            depthWriter.flush();
+            
+            gatesWriter.writeCells((Object[])headerCells);
+            gatesWriter.writeSeparator();
+            gatesWriter.flush();
+
+            for(int numberOfParties : partyNumbers) {
+                String[] depthCells = new String[slotNumbers.length + 1];
+                String[] gatesCells = new String[slotNumbers.length + 1];
+                depthCells[0] = Integer.toString(numberOfParties);
+                gatesCells[0] = Integer.toString(numberOfParties);
+
+                for(int slotId = 0; slotId < slotNumbers.length; ++slotId) {
+                    StatisticsCircuitBuilder builder = new StatisticsCircuitBuilder();
+                    schedulingScheme.getSchedulingScheme().createCircuitGenerator(numberOfParties, slotNumbers[slotId]).generate(builder);
+                    depthCells[slotId + 1] = Integer.toString(builder.getMaxDepth());
+                    gatesCells[slotId + 1] = Integer.toString(builder.getNumberOfANDGates());
+                }
+
+                depthWriter.writeCells((Object[])depthCells);
+                gatesWriter.writeCells((Object[])gatesCells);
+                depthWriter.flush();
+                gatesWriter.flush();
+            }
+        } catch(IOException exception) {
+            System.out.println("Failed to write results file.");
+            exception.printStackTrace();
+        }
+    }
+    
+    private static void measureTimings(int[] partyNumbers, int[] slotNumbers, SchedulingSchemeIdentifier schedulingScheme) {
+        final byte[][] inputs = new byte[][]{
+            { 0, 1, 1, 1, 1 },
+            { 1, 1, 0, 1, 1 },
+            { 1, 1, 0, 1, 0 },
+            { 1, 1, 1, 1, 0 }
+        };
+        
+        final String timestamp = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
+
+        try(TableWriter writer = new TableWriter(MessageFormat.format(RESULT_FILENAME, schedulingScheme.name(), timestamp), slotNumbers.length + 1, 7)) {
+            String[] headerCells = new String[slotNumbers.length + 1];
+            headerCells[0] = "n";
+            for(int i = 0; i < slotNumbers.length; ++i)
+                headerCells[i + 1] = "m = " + slotNumbers[i];
+
+            writer.writeCells((Object[])headerCells);
+            writer.writeSeparator();
+            writer.flush();
+
+            for(int numberOfParties : partyNumbers) {
+                String[] cells = new String[slotNumbers.length + 1];
+                cells[0] = Integer.toString(numberOfParties);
+
+                for(int slotId = 0; slotId < slotNumbers.length; ++slotId) {
+                    long result = benchmark(schedulingScheme, numberOfParties, slotNumbers[slotId], inputs);
+                    cells[slotId + 1] = Long.toString(result);
+                    sleep();
+                }
+
+                writer.writeCells((Object[])cells);
+                writer.flush();
+            }
+        } catch(IOException exception) {
+            System.out.println("Failed to write results file.");
             exception.printStackTrace();
         }
     }
