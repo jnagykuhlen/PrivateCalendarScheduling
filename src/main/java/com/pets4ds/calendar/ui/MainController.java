@@ -26,6 +26,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javafx.application.Platform;
 import javafx.beans.binding.*;
+import javafx.beans.value.ChangeListener;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -260,6 +261,9 @@ public class MainController implements Initializable, Closeable {
             String localPartyName = result.get();
             _schedulingManager.setLocalName(localPartyName);
             _nameText.setText(localPartyName);
+            
+            Stage mainStage = (Stage)_schedulingTabPane.getScene().getWindow();
+            mainStage.setTitle(MessageFormat.format("Private Calendar Scheduling [{0}]", localPartyName));
         }
         
         _changeNameHyperlink.setVisited(false);
@@ -426,6 +430,27 @@ public class MainController implements Initializable, Closeable {
         
         Stage stage = (Stage)alert.getDialogPane().getScene().getWindow();
         stage.setAlwaysOnTop(true);
+        
+        Stage mainStage = (Stage)_schedulingTabPane.getScene().getWindow();
+        if(!mainStage.isIconified()) {
+            ChangeListener<Number> widthListener = (observable, oldValue, newValue) -> {
+                double stageWidth = newValue.doubleValue();
+                stage.setX(mainStage.getX() + 0.5 * (mainStage.getWidth() - stageWidth));
+            };
+
+            ChangeListener<Number> heightListener = (observable, oldValue, newValue) -> {
+                double stageHeight = newValue.doubleValue();
+                stage.setY(mainStage.getY() + 0.5 * (mainStage.getHeight() - stageHeight));   
+            };
+
+            stage.widthProperty().addListener(widthListener);
+            stage.heightProperty().addListener(heightListener);
+
+            stage.setOnShown(e -> {
+                stage.widthProperty().removeListener(widthListener);
+                stage.heightProperty().removeListener(heightListener);
+            });
+        }
         
         alert.setTitle(session.getName());
         alert.setHeaderText(MessageFormat.format("You received an invitation to the scheduling session \"{0}\". Would you like to participate?", session.getName()));
