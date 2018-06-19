@@ -1,4 +1,4 @@
-package com.pets4ds.calendar;
+package com.pets4ds.calendar.ui;
 
 import javafx.application.Application;
 import static javafx.application.Application.launch;

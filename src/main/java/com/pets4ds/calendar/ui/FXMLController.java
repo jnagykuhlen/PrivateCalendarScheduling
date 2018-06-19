@@ -1,4 +1,4 @@
-package com.pets4ds.calendar;
+package com.pets4ds.calendar.ui;
 
 import java.net.URL;
 import java.util.ResourceBundle;
