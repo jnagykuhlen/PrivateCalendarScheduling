@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This project features a fully functional prototype for decentralized, privacy-preserving appointment scheduling based on secure multi-party computation (MPC). It was developed as part of my master thesis *Interactive Private Multi-Party Calendar Scheduling* at RWTH Aachen University, chair i5 Prof. Stefan Decker, during winter 2017/18. Special thanks go to my advisor Benjamin Heitmann, Ph.D., who provided ongoing support to make this work possible.
+This project features a fully functional prototype for decentralized, privacy-preserving appointment scheduling based on secure multi-party computation (MPC). It was developed as part of my master thesis *Interactive Private Multi-Party Calendar Scheduling* at RWTH Aachen University, chair i5 Prof. Stefan Decker, during winter 2017/18. Special thanks go to my advisor Benjamin Heitmann, Ph.D., who provided ongoing support to make this work possible. The full written thesis and presentation slides can be found on the [official RWTH project page](http://dbis.rwth-aachen.de/cms/theses/thesis-PETs4DS-secure-calendar-scheduling).
 
 ## Goal
 
@@ -17,7 +17,7 @@ The goal was to design and implement an easy-to-use application that allows a nu
 
 This prototype relies on secure multi-party computation (MPC), which enables users to collaboratively evaluate the scheduling functionality expressed in boolean logic. The inputs of each party, namely information whether certain time slots are free or unavailable, are encrypted by means of secret sharing and therefore remain private. Prior to the secure computation, a public session setup phase allows for discovery of potential participants as well as to agree on common protocol parameters. iCalendar files are used as a standardized way for interoperability with external calendar software.
 
-A more extensive description of the conceptual approach, insights regarding the implementation as well as evaluation results can be found in the written thesis.
+A more extensive description of the conceptual approach, insights regarding the implementation as well as evaluation results can be found in the [written thesis](http://dbis.rwth-aachen.de/cms/theses/thesis-PETs4DS-secure-calendar-scheduling/at_download/Download).
 
 ## Build Instructions
 
